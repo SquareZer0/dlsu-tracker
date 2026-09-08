@@ -26,7 +26,7 @@ async function refreshAccessToken(): Promise<string> {
   return data.access_token as string;
 }
 
-type Track = { name: string; artist: string; imageUrl: string | null };
+type Track = { name: string; artist: string; imageUrl: string | null; spotifyUrl: string | null };
 
 async function getPlaylistTracks(): Promise<Track[]> {
   const playlistId = process.env.SPOTIFY_PLAYLIST_ID;
@@ -35,7 +35,7 @@ async function getPlaylistTracks(): Promise<Track[]> {
   const tracks: Track[] = [];
   // /items replaces the deprecated /tracks endpoint as of Spotify's Feb 2026 migration.
   let url: string | null =
-    `https://api.spotify.com/v1/playlists/${playlistId}/items?fields=items(item(name,artists(name),album(images))),next&limit=100`;
+    `https://api.spotify.com/v1/playlists/${playlistId}/items?fields=items(item(name,artists(name),album(images),external_urls)),next&limit=100`;
 
   while (url) {
     const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -48,6 +48,7 @@ async function getPlaylistTracks(): Promise<Track[]> {
         name: t.name,
         artist: (t.artists ?? []).map((a: any) => a.name).join(", "),
         imageUrl: t.album?.images?.[0]?.url ?? null,
+        spotifyUrl: t.external_urls?.spotify ?? null,
       });
     }
     url = data.next ?? null;

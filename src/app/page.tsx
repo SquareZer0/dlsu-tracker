@@ -39,12 +39,16 @@ export default function HomePage() {
   return (
     <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
       <TopBar showBreadcrumb={isDesktop} />
-      <h1 className="flex items-center gap-3 text-2xl md:text-3xl font-semibold tracking-tight mb-6" style={{ color: theme.ink }}>
-        {greeting.text}
-        <GreetingIcon size={24} style={{ color: theme.inkMuted }} />
-      </h1>
-      <NowPanel />
-      <SongPanel />
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="flex-1 flex flex-col min-w-0">
+          <h1 className="flex items-center gap-3 text-2xl md:text-3xl font-semibold tracking-tight mb-4" style={{ color: theme.ink }}>
+            {greeting.text}
+            <GreetingIcon size={24} style={{ color: theme.inkMuted }} />
+          </h1>
+          <NowPanel />
+        </div>
+        <SongPanel />
+      </div>
       {isDesktop ? (
         <>
           <AssignmentsPanel />

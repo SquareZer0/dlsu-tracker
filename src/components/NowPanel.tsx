@@ -27,30 +27,32 @@ export function NowPanel() {
   const filled = Math.round((classPct / 100) * segments);
 
   return (
-    <Panel className="relative overflow-hidden mb-8 px-6 py-6">
+    <Panel className="relative overflow-hidden flex-1 flex flex-col px-6 py-6">
       <div
         className="absolute inset-x-0 top-0 h-16 pointer-events-none"
         style={{ background: `linear-gradient(to bottom, transparent, ${hexA(theme.ink, 0.06)}, transparent)`, animation: "scan 7s linear infinite" }}
       />
-      <div className="relative">
-        <p className="text-xs tracking-widest mb-1" style={{ color: theme.inkMuted }}>NOW</p>
-        <h1 className="text-2xl md:text-3xl font-semibold uppercase tracking-tight">
-          {today.length === 0 ? "No classes today" : current ? current.course : "Free period"}
-        </h1>
-        <p className="text-sm mt-1 mb-4" style={{ color: theme.inkMuted }}>
-          {today.length === 0
-            ? "Nothing on the weekly pattern for today."
-            : current
-            ? `${current.room ? current.room + " · " : ""}in session until ${clock(current.end)}`
-            : next ? `Next: ${next.course} at ${clock(next.start)}` : "Nothing left scheduled today."}
-        </p>
-        {current && (
-          <div className="flex gap-[2px] mb-4">
-            {Array.from({ length: segments }).map((_, i) => (
-              <div key={i} className="h-2 flex-1" style={{ backgroundColor: i < filled ? theme.accent : theme.border }} />
-            ))}
-          </div>
-        )}
+      <div className="relative flex-1 flex flex-col justify-between">
+        <div>
+          <p className="text-xs tracking-widest mb-1" style={{ color: theme.inkMuted }}>NOW</p>
+          <h1 className="text-2xl md:text-3xl font-semibold uppercase tracking-tight">
+            {today.length === 0 ? "No classes today" : current ? current.course : "Free period"}
+          </h1>
+          <p className="text-sm mt-1 mb-4" style={{ color: theme.inkMuted }}>
+            {today.length === 0
+              ? "Nothing on the weekly pattern for today."
+              : current
+              ? `${current.room ? current.room + " · " : ""}in session until ${clock(current.end)}`
+              : next ? `Next: ${next.course} at ${clock(next.start)}` : "Nothing left scheduled today."}
+          </p>
+          {current && (
+            <div className="flex gap-[2px] mb-4">
+              {Array.from({ length: segments }).map((_, i) => (
+                <div key={i} className="h-2 flex-1" style={{ backgroundColor: i < filled ? theme.accent : theme.border }} />
+              ))}
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-x-8 max-w-md">
           <StatRow label="ASSIGNMENTS PENDING" value={pending} />
           <StatRow label="TERM WEEK" value="02" />

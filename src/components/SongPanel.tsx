@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Music2 } from "lucide-react";
 import { Panel } from "./Panel";
-import { SectionHeader } from "./SectionHeader";
 import { theme } from "@/lib/theme";
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -10,8 +9,11 @@ function hexToRgb(hex: string): [number, number, number] {
   return [parseInt(h.substring(0, 2), 16), parseInt(h.substring(2, 4), 16), parseInt(h.substring(4, 6), 16)];
 }
 
-type Song = { title: string; artist: string; hasArtwork: boolean };
+type Song = { title: string; artist: string; hasArtwork: boolean; spotifyUrl: string | null };
 
+// Compact card meant to sit beside the greeting heading, not as its own
+// full-width section — full width on mobile (stacks below the greeting),
+// fixed width alongside it on desktop.
 export function SongPanel() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [song, setSong] = useState<Song | null>(null);
@@ -24,9 +26,6 @@ export function SongPanel() {
       .catch(() => setError("Couldn't reach the server."));
   }, []);
 
-  // Recolors the artwork onto the same two tones used everywhere else in the
-  // app, mapped from each pixel's brightness — done client-side on a canvas
-  // so no image-processing dependency is needed on the server.
   useEffect(() => {
     if (!song?.hasArtwork || !canvasRef.current) return;
     const canvas = canvasRef.current;
@@ -52,27 +51,39 @@ export function SongPanel() {
     img.src = "/api/song-of-day/artwork";
   }, [song]);
 
-  return (
-    <Panel className="px-4 py-4 mb-8">
-      <SectionHeader icon={<Music2 size={14} />} label="SONG OF THE DAY" />
+  const content = (
+    <>
+      <div className="flex items-center gap-1.5 mb-2 text-[10px] tracking-widest" style={{ color: theme.inkFaint }}>
+        <Music2 size={11} /> SONG OF THE DAY
+      </div>
       {error ? (
         <p className="text-xs" style={{ color: theme.accent }}>{error}</p>
       ) : !song ? (
         <p className="text-xs" style={{ color: theme.inkFaint }}>Loading…</p>
       ) : (
-        <div className="flex items-center gap-4">
+        <>
           {song.hasArtwork ? (
-            <canvas ref={canvasRef} className="w-20 h-20 border" style={{ borderColor: theme.border }} />
+            <canvas ref={canvasRef} className="w-full aspect-square border mb-2" style={{ borderColor: theme.border }} />
           ) : (
-            <div className="w-20 h-20 border flex items-center justify-center shrink-0" style={{ borderColor: theme.border }}>
-              <Music2 size={24} style={{ color: theme.inkFaint }} />
+            <div className="w-full aspect-square border mb-2 flex items-center justify-center" style={{ borderColor: theme.border }}>
+              <Music2 size={20} style={{ color: theme.inkFaint }} />
             </div>
           )}
-          <div className="min-w-0">
-            <p className="text-sm font-medium truncate">{song.title}</p>
-            <p className="text-xs truncate" style={{ color: theme.inkMuted }}>{song.artist}</p>
-          </div>
-        </div>
+          <p className="text-sm font-medium truncate">{song.title}</p>
+          <p className="text-xs truncate" style={{ color: theme.inkMuted }}>{song.artist}</p>
+        </>
+      )}
+    </>
+  );
+
+  return (
+    <Panel className="w-full md:w-64 shrink-0 px-4 py-4">
+      {song?.spotifyUrl ? (
+        <a href={song.spotifyUrl} target="_blank" rel="noopener noreferrer" className="block">
+          {content}
+        </a>
+      ) : (
+        content
       )}
     </Panel>
   );
