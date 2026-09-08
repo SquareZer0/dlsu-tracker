@@ -1,0 +1,59 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+  engineType      = "client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Assignment {
+  id         Int       @id @default(autoincrement())
+  course     String
+  title      String
+  note       String?
+  dueAt      DateTime
+  done       Boolean   @default(false)
+  doneAt     DateTime?
+  externalId String?   @unique
+  createdAt  DateTime  @default(now())
+}
+
+model Exam {
+  id         Int      @id @default(autoincrement())
+  course     String
+  title      String
+  dueAt      DateTime
+  externalId String?  @unique
+  createdAt  DateTime @default(now())
+}
+
+model ClassBlock {
+  id       Int     @id @default(autoincrement())
+  course   String
+  room     String?
+  weekday  Int
+  startMin Int
+  endMin   Int
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  label     String
+  amount    Float
+  createdAt DateTime @default(now())
+}
+
+model Settings {
+  id        Int     @id @default(1)
+  balance   Float   @default(3500)
+  canvasUrl String?
+}
+
+model NotifyLog {
+  id     Int      @id @default(autoincrement())
+  key    String   @unique
+  sentAt DateTime @default(now())
+}

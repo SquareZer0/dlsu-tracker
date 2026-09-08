@@ -1,0 +1,17 @@
+name: Notify
+
+on:
+  schedule:
+    # every 15 minutes — needs to be frequent enough to catch the 15-min
+    # class-start window; GitHub may delay a few minutes under load
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit the notify endpoint
+        run: |
+          curl -sf -X POST "${{ secrets.APP_URL }}/api/cron/notify" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
