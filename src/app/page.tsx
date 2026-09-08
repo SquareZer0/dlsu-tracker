@@ -71,7 +71,7 @@ export default function HomePage() {
   if (isDesktop === null) return null;
 
   return (
-    <div className="max-w-5xl xl:max-w-[1400px] mx-auto px-6 md:px-10 py-8">
+    <div className="max-w-5xl xl:max-w-[1400px] mx-auto px-6 md:px-10 py-8 pb-28 md:pb-8">
       <TopBar showBreadcrumb={isDesktop} />
 
       <div className="flex flex-col xl:flex-row gap-8 items-start">
