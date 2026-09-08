@@ -4,10 +4,12 @@ import { Wallet, Eye, EyeOff, Plus } from "lucide-react";
 import { Panel } from "./Panel";
 import { SectionHeader } from "./SectionHeader";
 import { StatRow } from "./StatRow";
-import { theme, peso } from "@/lib/theme";
+import { peso } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 import type { Transaction } from "@/lib/types";
 
 export function FinancePanel() {
+  const theme = useTheme();
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [hideBalance, setHideBalance] = useState(false);

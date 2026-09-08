@@ -5,10 +5,12 @@ import { useNow } from "@/lib/hooks";
 import { Panel } from "./Panel";
 import { SectionHeader } from "./SectionHeader";
 import { StatRow } from "./StatRow";
-import { theme, formatDue, isUrgent } from "@/lib/theme";
+import { formatDue, isUrgent } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 import type { Exam } from "@/lib/types";
 
 export function ExamsPanel() {
+  const theme = useTheme();
   const now = useNow(30000);
   const [exams, setExams] = useState<Exam[]>([]);
 

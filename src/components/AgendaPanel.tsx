@@ -1,7 +1,8 @@
 "use client";
 import { Clock, MapPin, Sparkles, AlertCircle } from "lucide-react";
 import { Panel } from "./Panel";
-import { theme, hexA } from "@/lib/theme";
+import { hexA } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 import type { GCalEvent } from "@/app/api/gcal/route";
 
 type AgendaPanelProps = {
@@ -21,6 +22,7 @@ export function AgendaCard({
   onResetDate,
   showReset = false,
 }: AgendaPanelProps) {
+  const theme = useTheme();
   const now = new Date();
 
   const isEventLive = (ev: GCalEvent) => {

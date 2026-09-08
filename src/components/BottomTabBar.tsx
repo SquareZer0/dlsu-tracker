@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, ListChecks, GraduationCap, Wallet, CalendarClock } from "lucide-react";
-import { theme } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
 const tabs = [
   { href: "/", label: "HOME", icon: Home },
@@ -13,6 +13,7 @@ const tabs = [
 ];
 
 export function BottomTabBar() {
+  const theme = useTheme();
   const pathname = usePathname();
   return (
     <nav

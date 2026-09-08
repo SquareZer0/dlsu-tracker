@@ -1,9 +1,10 @@
 "use client";
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { theme } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
 export function SyncButton() {
+  const theme = useTheme();
   const [pulling, setPulling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

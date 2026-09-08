@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { Panel } from "./Panel";
-import { theme, hexA } from "@/lib/theme";
+import { hexA } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 import type { GCalEvent } from "@/app/api/gcal/route";
 
 type MiniCalendarPanelProps = {
@@ -24,6 +25,7 @@ export function MiniCalendarPanel({
   isLive,
   statusMessage,
 }: MiniCalendarPanelProps) {
+  const theme = useTheme();
   // Current displayed month in the calendar
   const [viewDate, setViewDate] = useState(() => {
     const d = new Date();
@@ -111,14 +113,14 @@ export function MiniCalendarPanel({
   // Helper for dot gradient based on count
   const renderDot = (count: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) {
-      return <div className="w-1.5 h-1.5 rounded-full bg-[#352D24] opacity-40 mt-1" />;
+      return <div className="w-1.5 h-1.5 rounded-full opacity-40 mt-1" style={{ backgroundColor: theme.inkFaint }} />;
     }
 
     if (count === 0) {
       return (
         <div
           className="w-1.5 h-1.5 rounded-full mt-1 border"
-          style={{ borderColor: "#4A4332", backgroundColor: "transparent" }}
+          style={{ borderColor: theme.border, backgroundColor: "transparent" }}
         />
       );
     }
@@ -287,7 +289,7 @@ export function MiniCalendarPanel({
       >
         <span>ACTIVITY:</span>
         <div className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full border" style={{ borderColor: "#4A4332" }} />
+          <span className="w-1.5 h-1.5 rounded-full border" style={{ borderColor: theme.border }} />
           <span>0</span>
         </div>
         <div className="flex items-center gap-1">

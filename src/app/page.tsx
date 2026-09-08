@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Sunrise, Sun, Sunset, Moon } from "lucide-react";
 import { useIsDesktop } from "@/lib/hooks";
-import { theme } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 import { pickGreeting, type Period } from "@/lib/greetings";
 import { TopBar } from "@/components/TopBar";
 import { NowPanel } from "@/components/NowPanel";
@@ -42,6 +42,7 @@ type GCalResponse = {
 };
 
 export default function HomePage() {
+  const theme = useTheme();
   const isDesktop = useIsDesktop();
   const [greeting] = useState(() => pickGreeting());
   const GreetingIcon = greetingIcons[greeting.period];

@@ -3,10 +3,12 @@ import { useEffect, useState } from "react";
 import { useNow } from "@/lib/hooks";
 import { Panel } from "./Panel";
 import { StatRow } from "./StatRow";
-import { theme, hexA, clock } from "@/lib/theme";
+import { hexA, clock } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 import type { ClassBlock, Assignment } from "@/lib/types";
 
 export function NowPanel() {
+  const theme = useTheme();
   const now = useNow();
   const [blocks, setBlocks] = useState<ClassBlock[]>([]);
   const [pending, setPending] = useState(0);

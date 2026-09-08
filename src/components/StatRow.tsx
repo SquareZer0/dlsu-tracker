@@ -1,8 +1,10 @@
-import { theme } from "@/lib/theme";
+"use client";
+import { useTheme } from "@/lib/theme-context";
 
 export function StatRow({
   label, value, valueColor, pulse,
 }: { label: string; value: string | number; valueColor?: string; pulse?: boolean }) {
+  const theme = useTheme();
   return (
     <div className="flex items-baseline gap-2 text-xs py-1">
       <span style={{ color: theme.inkMuted }}>{label}</span>

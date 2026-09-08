@@ -4,10 +4,11 @@ import { CalendarClock } from "lucide-react";
 import { useNow } from "@/lib/hooks";
 import { Panel } from "./Panel";
 import { SectionHeader } from "./SectionHeader";
-import { theme } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 import type { ClassBlock } from "@/lib/types";
 
 export function ScheduleTimeline() {
+  const theme = useTheme();
   const now = useNow();
   const [blocks, setBlocks] = useState<ClassBlock[]>([]);
 

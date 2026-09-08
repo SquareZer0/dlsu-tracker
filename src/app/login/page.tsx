@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { theme, notch } from "@/lib/theme";
+import { notch } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
 export default function LoginPage() {
+  const theme = useTheme();
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState(false);
   const router = useRouter();

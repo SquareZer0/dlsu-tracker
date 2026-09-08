@@ -9,6 +9,12 @@ body {
   color: #C9BE96;
 }
 
+html[data-theme="light"] body {
+  background-color: #DDD6BA;
+  background-image: radial-gradient(rgba(43, 40, 32, 0.06) 1px, transparent 1.4px);
+  color: #2B2820;
+}
+
 @keyframes pop {
   0% { transform: scale(1); }
   45% { transform: scale(1.25); }
@@ -44,4 +50,17 @@ body {
 }
 .hud-scroll::-webkit-scrollbar-thumb:hover {
   background: #C9BE96;
+}
+
+html[data-theme="light"] .hud-scroll {
+  scrollbar-color: #B0A57D #E8E2C8;
+}
+html[data-theme="light"] .hud-scroll::-webkit-scrollbar-track {
+  background: #E8E2C8;
+}
+html[data-theme="light"] .hud-scroll::-webkit-scrollbar-thumb {
+  background: #B0A57D;
+}
+html[data-theme="light"] .hud-scroll::-webkit-scrollbar-thumb:hover {
+  background: #2B2820;
 }

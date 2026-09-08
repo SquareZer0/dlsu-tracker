@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Music2 } from "lucide-react";
 import { Panel } from "./Panel";
-import { theme } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
 type Song = { title: string; artist: string; hasArtwork: boolean; spotifyUrl: string | null };
 
@@ -10,6 +10,7 @@ type Song = { title: string; artist: string; hasArtwork: boolean; spotifyUrl: st
 // full-width section — full width on mobile (stacks below the greeting),
 // fixed width alongside it on desktop.
 export function SongPanel() {
+  const theme = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [song, setSong] = useState<Song | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +73,7 @@ export function SongPanel() {
       }
     };
     img.src = "/api/song-of-day/artwork";
-  }, [song]);
+  }, [song, theme]);
 
   const content = (
     <>

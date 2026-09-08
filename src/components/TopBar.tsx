@@ -1,10 +1,14 @@
 "use client";
+import { Moon, Sun } from "lucide-react";
 import { useNow } from "@/lib/hooks";
-import { clock, theme } from "@/lib/theme";
+import { clock } from "@/lib/theme";
+import { useTheme, useThemeMode } from "@/lib/theme-context";
 import { SyncButton } from "./SyncButton";
 
 export function TopBar({ showBreadcrumb = true }: { showBreadcrumb?: boolean }) {
   const now = useNow();
+  const theme = useTheme();
+  const { mode, toggle } = useThemeMode();
   return (
     <div
       className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-6 border-b border-dashed text-xs uppercase tracking-widest"
@@ -16,6 +20,14 @@ export function TopBar({ showBreadcrumb = true }: { showBreadcrumb?: boolean }) 
         </div>
       ) : <div />}
       <div className="flex items-center gap-3">
+        <button
+          onClick={toggle}
+          aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          className="flex items-center gap-1 px-2 py-1 border"
+          style={{ borderColor: theme.border, color: theme.inkMuted }}
+        >
+          {mode === "dark" ? <Sun size={12} /> : <Moon size={12} />}
+        </button>
         <SyncButton />
         <span className="tabular-nums" style={{ color: theme.ink }}>{clock(now)}</span>
       </div>

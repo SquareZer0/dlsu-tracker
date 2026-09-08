@@ -1,5 +1,21 @@
 // Shared design tokens for the monochrome HUD look, used by every component.
-export const theme = {
+// Two palettes (dark is the original look, light mirrors it) — components
+// read the active one via useTheme() in theme-context.tsx rather than
+// importing a static object, so the mode toggle actually repaints them.
+export type ThemeMode = "dark" | "light";
+
+export type ThemePalette = {
+  bg: string;
+  panel: string;
+  border: string;
+  ink: string;
+  inkMuted: string;
+  inkFaint: string;
+  accent: string;
+  dot: string;
+};
+
+const dark: ThemePalette = {
   bg: "#181310",
   panel: "#201A14",
   border: "#4A4332",
@@ -9,6 +25,19 @@ export const theme = {
   accent: "#C1502E",
   dot: "rgba(201,190,150,0.05)",
 };
+
+const light: ThemePalette = {
+  bg: "#DDD6BA",
+  panel: "#E8E2C8",
+  border: "#B0A57D",
+  ink: "#2B2820",
+  inkMuted: "#6B6249",
+  inkFaint: "#9C9270",
+  accent: "#A8431F",
+  dot: "rgba(43,40,32,0.06)",
+};
+
+export const palettes: Record<ThemeMode, ThemePalette> = { dark, light };
 
 export function hexA(hex: string, a: number) {
   const h = hex.replace("#", "");

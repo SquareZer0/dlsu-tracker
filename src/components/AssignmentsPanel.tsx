@@ -5,7 +5,8 @@ import { useNow } from "@/lib/hooks";
 import { Panel } from "./Panel";
 import { SectionHeader } from "./SectionHeader";
 import { StatRow } from "./StatRow";
-import { theme, hexA, formatDue, isUrgent, clock } from "@/lib/theme";
+import { hexA, formatDue, isUrgent, clock } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 import type { Assignment } from "@/lib/types";
 
 function dueDateTime(d: Date) {
@@ -13,6 +14,7 @@ function dueDateTime(d: Date) {
 }
 
 export function AssignmentsPanel() {
+  const theme = useTheme();
   const now = useNow(30000);
   const [items, setItems] = useState<Assignment[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
