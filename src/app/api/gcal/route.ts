@@ -193,17 +193,14 @@ export async function GET(req: Request) {
           statusMessage = "Google Calendar link returned invalid iCal data.";
         }
       } else {
-        statusMessage = `Google Calendar returned status ${res.status}. Use 'Secret address in iCal format' from Google Calendar Settings.`;
+        statusMessage = `Google Calendar returned status ${res.status}. DLSU accounts require the 'Secret address in iCal format' (/private-.../basic.ics), not the public URL.`;
       }
     } catch (err: any) {
-      statusMessage = `Failed to fetch Google Calendar: ${err.message}`;
+      statusMessage = `Failed to reach Google Calendar: ${err.message}`;
     }
   } else {
-    statusMessage = "GOOGLE_CALENDAR_ICS_URL not configured.";
-  }
-
-  // If live fetch didn't yield events, fall back to sample events so UI is interactive
-  if (!isLive || rawEvents.length === 0) {
+    statusMessage = "GOOGLE_CALENDAR_ICS_URL not configured. Add your 'Secret address in iCal format' in .env or Vercel.";
+    // Only generate sample preview if no URL was provided at all
     rawEvents = generateSampleEvents(now);
   }
 

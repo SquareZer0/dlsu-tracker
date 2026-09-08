@@ -22,6 +22,7 @@ export function MiniCalendarPanel({
   selectedKey,
   onSelectDate,
   isLive,
+  statusMessage,
 }: MiniCalendarPanelProps) {
   // Current displayed month in the calendar
   const [viewDate, setViewDate] = useState(() => {
@@ -205,6 +206,21 @@ export function MiniCalendarPanel({
           </button>
         </div>
       </div>
+
+      {/* Status Warning Banner if not live */}
+      {!isLive && statusMessage && (
+        <div
+          className="mb-3 px-2 py-1.5 border text-[10px] leading-snug font-mono"
+          style={{
+            borderColor: theme.accent,
+            backgroundColor: hexA(theme.accent, 0.12),
+            color: theme.ink,
+          }}
+        >
+          <span className="font-bold" style={{ color: theme.accent }}>[GCAL ALERT] </span>
+          {statusMessage}
+        </div>
+      )}
 
       {/* Weekday Row */}
       <div className="grid grid-cols-7 text-center mb-1">
