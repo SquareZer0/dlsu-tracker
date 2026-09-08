@@ -18,20 +18,27 @@ function isNonAssignmentNotice(course: string, title: string) {
 
 // DLSU's Canvas feed includes every lab section's calendar, not just the one
 // Miguel is enrolled in, so the same assignment shows up once per section
-// with a near-identical title ("H01: ..." vs "H 01: ..."). Those land as
-// separate VEVENTs with different UIDs, so upserting on externalId alone
-// doesn't catch them — dedupe within a run by comparing whitespace-stripped
-// titles instead.
+// with a near-identical title — sometimes only whitespace differs ("H01: ..."
+// vs "H 01: ..."), sometimes punctuation too ("MO3: ..." vs "MO3 - ...").
+// Those land as separate VEVENTs with different UIDs, so upserting on
+// externalId alone doesn't catch them — dedupe within a run by comparing
+// titles with all non-alphanumeric characters stripped instead.
 function normalize(title: string) {
-  return title.replace(/\s+/g, "").toLowerCase();
+  return title.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-const URL_RE = /https?:\/\/\S+/;
+// Canvas's calendar `URL` property is just a generic "/calendar?..." link,
+// not a deep link to the item, and every event description embeds decorative
+// image links ("content-divider.png", "about.png", ...) via the WYSIWYG
+// editor before the actual assignment/discussion/quiz link appears — a plain
+// "first http(s) link" match grabs the divider image instead. Look for a
+// link that's actually shaped like a Canvas course resource instead.
+const CANVAS_RESOURCE_RE = /https?:\/\/[^\s")]+\/courses\/\d+\/(?:assignments|discussion_topics|quizzes|pages)\/[^\s")]+/;
 
 function extractCanvasUrl(ev: any): string | null {
-  if (typeof ev.url === "string" && ev.url) return ev.url;
-  const match = URL_RE.exec(ev.description ?? "");
-  return match ? match[0].replace(/[)>.,]+$/, "") : null;
+  const haystack = `${ev.url ?? ""} ${ev.description ?? ""}`;
+  const match = CANVAS_RESOURCE_RE.exec(haystack);
+  return match ? match[0] : null;
 }
 
 // Runs server-side, so there's no CORS wall here the way there was when the

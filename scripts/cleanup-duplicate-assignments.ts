@@ -10,30 +10,47 @@ const authToken = process.env.TURSO_AUTH_TOKEN;
 const client = createClient({ url, authToken });
 
 function normalize(title: string) {
-  return title.replace(/\s+/g, "").toLowerCase();
+  return title.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+// Real Canvas syncs always set externalId to the feed's iCal UID
+// ("event-assignment-...", "event-calendar-event-...", etc). Anything else —
+// e.g. prisma/seed.ts's demo rows, which use the literal title as
+// externalId — is stale placeholder data, so it should never be kept over a
+// genuine synced duplicate even if it happens to have a lower id.
+function isCanvasOrigin(externalId: string | null) {
+  return !!externalId && externalId.startsWith("event-");
+}
+
+type Row = { id: number; course: string; title: string; canvasUrl: string | null; externalId: string | null };
+
 async function main() {
-  const res = await client.execute(`SELECT id, course, title, canvasUrl FROM "Assignment" ORDER BY id ASC`);
-  const rows = res.rows as unknown as { id: number; course: string; title: string; canvasUrl: string | null }[];
+  const res = await client.execute(`SELECT id, course, title, canvasUrl, externalId FROM "Assignment" ORDER BY id ASC`);
+  const rows = res.rows as unknown as Row[];
 
-  const keepByKey = new Map<string, { id: number; canvasUrl: string | null }>();
-  const toDelete: number[] = [];
-
+  const groups = new Map<string, Row[]>();
   for (const r of rows) {
     const key = `${r.course}|${normalize(r.title)}`;
-    const kept = keepByKey.get(key);
-    if (!kept) {
-      keepByKey.set(key, { id: r.id, canvasUrl: r.canvasUrl });
-      continue;
+    const group = groups.get(key);
+    if (group) group.push(r); else groups.set(key, [r]);
+  }
+
+  const toDelete: number[] = [];
+
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    group.sort((a, b) => {
+      const rank = (r: Row) => (isCanvasOrigin(r.externalId) ? 0 : 1);
+      return rank(a) - rank(b) || a.id - b.id;
+    });
+    const [keep, ...rest] = group;
+    let canvasUrl = keep.canvasUrl;
+    for (const r of rest) {
+      if (!canvasUrl && r.canvasUrl) canvasUrl = r.canvasUrl;
+      toDelete.push(r.id);
     }
-    toDelete.push(r.id);
-    if (!kept.canvasUrl && r.canvasUrl) {
-      await client.execute({
-        sql: `UPDATE "Assignment" SET "canvasUrl" = ? WHERE id = ?`,
-        args: [r.canvasUrl, kept.id],
-      });
-      kept.canvasUrl = r.canvasUrl;
+    if (canvasUrl !== keep.canvasUrl) {
+      await client.execute({ sql: `UPDATE "Assignment" SET "canvasUrl" = ? WHERE id = ?`, args: [canvasUrl, keep.id] });
     }
   }
 

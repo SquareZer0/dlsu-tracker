@@ -1,0 +1,17 @@
+name: Dedupe assignments
+
+on:
+  schedule:
+    # every 6 hours — duplicates only ever come from a Canvas sync, which
+    # isn't frequent enough to need the notify workflow's 15-minute cadence
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  dedupe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit the dedupe endpoint
+        run: |
+          curl -sf -X POST "${{ secrets.APP_URL }}/api/cron/dedupe-assignments" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
