@@ -124,19 +124,48 @@ export async function GET(req: Request) {
 
   if (url && url.startsWith("http")) {
     try {
+      const isScriptUrl = url.includes("script.google.com");
       const res = await fetch(url, {
         headers: { "User-Agent": "DLSU-Tracker-Client/1.0" },
         cache: "no-store",
+        redirect: "follow",
       });
 
       if (res.ok) {
-        const text = await res.text();
-        if (text.includes("BEGIN:VCALENDAR")) {
-          const parsed = ical.parseICS(text);
-          const windowStart = new Date(now);
-          windowStart.setDate(windowStart.getDate() - 35);
-          const windowEnd = new Date(now);
-          windowEnd.setDate(windowEnd.getDate() + 45);
+        if (isScriptUrl) {
+          const items = await res.json();
+          if (Array.isArray(items)) {
+            for (const item of items) {
+              const s = new Date(item.start);
+              const e = new Date(item.end);
+              const dateKey = toManilaDateKey(s);
+
+              rawEvents.push({
+                id: item.id || `${dateKey}-${item.title}-${s.getTime()}`,
+                title: item.title,
+                start: s.toISOString(),
+                end: e.toISOString(),
+                startTime: item.isAllDay ? "ALL DAY" : formatClockTime(s),
+                endTime: item.isAllDay ? "" : formatClockTime(e),
+                location: item.location || null,
+                description: item.description || null,
+                isAllDay: !!item.isAllDay,
+                dateKey,
+              });
+            }
+            isLive = true;
+            statusMessage = "Connected to Google Calendar.";
+          } else {
+            statusMessage = "Google Apps Script returned invalid JSON structure.";
+          }
+        } else {
+          const text = await res.text();
+          if (text.includes("BEGIN:VCALENDAR")) {
+            const parsed = ical.parseICS(text);
+            const windowStart = new Date(now);
+            windowStart.setDate(windowStart.getDate() - 35);
+            const windowEnd = new Date(now);
+            windowEnd.setDate(windowEnd.getDate() + 45);
 
           for (const key in parsed) {
             const ev: any = parsed[key];
@@ -192,9 +221,12 @@ export async function GET(req: Request) {
         } else {
           statusMessage = "Google Calendar link returned invalid iCal data.";
         }
-      } else {
-        statusMessage = `Google Calendar returned status ${res.status}. DLSU accounts require the 'Secret address in iCal format' (/private-.../basic.ics), not the public URL.`;
       }
+    } else {
+      statusMessage = isScriptUrl
+        ? `Google Apps Script returned status ${res.status}. Ensure 'Who has access' was set to 'Anyone' during deployment.`
+        : `Google Calendar returned status ${res.status}. DLSU accounts require the Web App bridge or private link.`;
+    }
     } catch (err: any) {
       statusMessage = `Failed to reach Google Calendar: ${err.message}`;
     }
