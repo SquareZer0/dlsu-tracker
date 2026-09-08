@@ -57,7 +57,7 @@ export function AssignmentsPanel() {
             <Sparkles size={13} /> All caught up
           </div>
         )}
-        <ul>
+        <ul className="hud-scroll overflow-y-auto max-h-[340px] pr-1">
           {items.map((a) => {
             const due = new Date(a.dueAt);
             const urgent = isUrgent(due, now) && !a.done;

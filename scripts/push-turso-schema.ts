@@ -76,6 +76,13 @@ async function main() {
     if (!String(e?.message ?? e).includes("duplicate column")) throw e;
     console.log('"doneAt" column already exists on Assignment — skipped.');
   }
+  try {
+    await client.execute(`ALTER TABLE "Settings" ADD COLUMN "spotifyRefreshToken" TEXT`);
+    console.log('Added "spotifyRefreshToken" column to Settings.');
+  } catch (e: any) {
+    if (!String(e?.message ?? e).includes("duplicate column")) throw e;
+    console.log('"spotifyRefreshToken" column already exists on Settings — skipped.');
+  }
   console.log(`Created/verified ${statements.length} tables/indexes on Turso.`);
 }
 

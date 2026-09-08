@@ -1,11 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { Sunrise, Sun, Sunset, Moon } from "lucide-react";
 import { useIsDesktop } from "@/lib/hooks";
 import { theme } from "@/lib/theme";
-import { pickGreeting } from "@/lib/greetings";
+import { pickGreeting, type Period } from "@/lib/greetings";
 import { TopBar } from "@/components/TopBar";
 import { NowPanel } from "@/components/NowPanel";
+import { SongPanel } from "@/components/SongPanel";
 import { AssignmentsPanel } from "@/components/AssignmentsPanel";
 import { ExamsPanel } from "@/components/ExamsPanel";
 import { FinancePanel } from "@/components/FinancePanel";
@@ -19,9 +21,17 @@ const links = [
   { href: "/schedule", label: "Schedule" },
 ];
 
+const greetingIcons: Record<Period, typeof Sun> = {
+  morning: Sunrise,
+  afternoon: Sun,
+  evening: Sunset,
+  night: Moon,
+};
+
 export default function HomePage() {
   const isDesktop = useIsDesktop();
   const [greeting] = useState(() => pickGreeting());
+  const GreetingIcon = greetingIcons[greeting.period];
 
   // null briefly while we detect viewport — avoids flashing the wrong layout
   if (isDesktop === null) return null;
@@ -29,10 +39,12 @@ export default function HomePage() {
   return (
     <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
       <TopBar showBreadcrumb={isDesktop} />
-      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-6" style={{ color: theme.ink }}>
-        {greeting}
+      <h1 className="flex items-center gap-3 text-2xl md:text-3xl font-semibold tracking-tight mb-6" style={{ color: theme.ink }}>
+        {greeting.text}
+        <GreetingIcon size={24} style={{ color: theme.inkMuted }} />
       </h1>
       <NowPanel />
+      <SongPanel />
       {isDesktop ? (
         <>
           <AssignmentsPanel />

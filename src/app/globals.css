@@ -26,3 +26,22 @@ body {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(320%); }
 }
+
+/* Squared-off scrollbar matching the panel borders, instead of the browser default */
+.hud-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #4A4332 #201A14;
+}
+.hud-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.hud-scroll::-webkit-scrollbar-track {
+  background: #201A14;
+}
+.hud-scroll::-webkit-scrollbar-thumb {
+  background: #4A4332;
+  border-radius: 0;
+}
+.hud-scroll::-webkit-scrollbar-thumb:hover {
+  background: #C9BE96;
+}

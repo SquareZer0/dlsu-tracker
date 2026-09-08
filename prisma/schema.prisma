@@ -47,9 +47,10 @@ model Transaction {
 }
 
 model Settings {
-  id        Int     @id @default(1)
-  balance   Float   @default(3500)
-  canvasUrl String?
+  id                  Int     @id @default(1)
+  balance             Float   @default(3500)
+  canvasUrl           String?
+  spotifyRefreshToken String?
 }
 
 model NotifyLog {
