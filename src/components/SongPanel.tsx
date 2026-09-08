@@ -4,11 +4,6 @@ import { Music2 } from "lucide-react";
 import { Panel } from "./Panel";
 import { theme } from "@/lib/theme";
 
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace("#", "");
-  return [parseInt(h.substring(0, 2), 16), parseInt(h.substring(2, 4), 16), parseInt(h.substring(4, 6), 16)];
-}
-
 type Song = { title: string; artist: string; hasArtwork: boolean; spotifyUrl: string | null };
 
 // Compact card meant to sit beside the greeting heading, not as its own
@@ -26,6 +21,10 @@ export function SongPanel() {
       .catch(() => setError("Couldn't reach the server."));
   }, []);
 
+  // Ben-Day dots: sample each grid cell's average brightness from the
+  // original photo, then draw a single dot per cell sized to that
+  // brightness — bright patches get big dots, dark patches shrink toward
+  // nothing, same two tones as the rest of the app instead of full color.
   useEffect(() => {
     if (!song?.hasArtwork || !canvasRef.current) return;
     const canvas = canvasRef.current;
@@ -35,18 +34,42 @@ export function SongPanel() {
     img.onload = () => {
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const dark = hexToRgb(theme.panel);
-      const light = hexToRgb(theme.ink);
-      const d = imageData.data;
-      for (let i = 0; i < d.length; i += 4) {
-        const lum = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
-        d[i] = dark[0] + (light[0] - dark[0]) * lum;
-        d[i + 1] = dark[1] + (light[1] - dark[1]) * lum;
-        d[i + 2] = dark[2] + (light[2] - dark[2]) * lum;
+
+      // draw the original into an offscreen canvas purely to sample it
+      const off = document.createElement("canvas");
+      off.width = canvas.width;
+      off.height = canvas.height;
+      const offCtx = off.getContext("2d");
+      if (!offCtx) return;
+      offCtx.drawImage(img, 0, 0);
+      const { data } = offCtx.getImageData(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = theme.panel;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = theme.ink;
+
+      const cellSize = Math.max(4, Math.round(canvas.width / 50));
+      for (let y = 0; y < canvas.height; y += cellSize) {
+        for (let x = 0; x < canvas.width; x += cellSize) {
+          let total = 0, count = 0;
+          const yMax = Math.min(y + cellSize, canvas.height);
+          const xMax = Math.min(x + cellSize, canvas.width);
+          for (let yy = y; yy < yMax; yy++) {
+            for (let xx = x; xx < xMax; xx++) {
+              const idx = (yy * canvas.width + xx) * 4;
+              total += 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+              count++;
+            }
+          }
+          const avgLum = total / count / 255;
+          const radius = (cellSize / 2) * avgLum * 0.95;
+          if (radius > 0.6) {
+            ctx.beginPath();
+            ctx.arc(x + cellSize / 2, y + cellSize / 2, radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
       }
-      ctx.putImageData(imageData, 0, 0);
     };
     img.src = "/api/song-of-day/artwork";
   }, [song]);
@@ -88,3 +111,4 @@ export function SongPanel() {
     </Panel>
   );
 }
+
