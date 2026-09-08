@@ -4,6 +4,18 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+// A real assignment title describes a task ("H01: Query Processing"). Canvas's
+// calendar feed also includes things like recurring class-session/Zoom
+// reminders, whose title is usually just the course code plus a section tag
+// ("STADVDB (S03 & S04)") repeated once per week — those aren't deliverables,
+// so they're filtered out here rather than imported as assignments.
+function isNonAssignmentNotice(course: string, title: string) {
+  const escaped = course.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const isBareCourseSession = new RegExp(`^${escaped}\\s*(\\(.*\\))?$`, "i").test(title.trim());
+  const isReminderNotice = /\breminder\b/i.test(title);
+  return isBareCourseSession || isReminderNotice;
+}
+
 // Runs server-side, so there's no CORS wall here the way there was when the
 // browser tried to fetch Canvas directly in the design mockup.
 export async function POST() {
@@ -17,6 +29,7 @@ export async function POST() {
 
   let assignments = 0;
   let exams = 0;
+  let skipped = 0;
 
   for (const key in data) {
     const ev: any = data[key];
@@ -26,6 +39,12 @@ export async function POST() {
     const courseMatch = /\[([A-Z0-9_ ]+)\]\s*$/.exec(summary);
     const course = courseMatch ? courseMatch[1].split("_")[0] : "CANVAS";
     const title = summary.replace(/\s*\[[^\]]+\]\s*$/, "").trim();
+
+    if (isNonAssignmentNotice(course, title)) {
+      skipped++;
+      continue;
+    }
+
     const isExam = /\bexam\b/i.test(title);
 
     if (isExam) {
@@ -45,5 +64,6 @@ export async function POST() {
     }
   }
 
-  return NextResponse.json({ assignments, exams });
+  return NextResponse.json({ assignments, exams, skipped });
 }
+

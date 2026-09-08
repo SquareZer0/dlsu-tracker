@@ -11,6 +11,7 @@
     "db:push:turso": "tsx scripts/push-turso-schema.ts",
     "db:seed": "tsx prisma/seed.ts",
     "sync:canvas": "tsx scripts/sync-canvas.ts",
+    "cleanup:assignments": "tsx scripts/cleanup-junk-assignments.ts",
     "notify:check": "tsx scripts/check-notify.ts"
   },
   "dependencies": {
