@@ -5,8 +5,12 @@ import { useNow } from "@/lib/hooks";
 import { Panel } from "./Panel";
 import { SectionHeader } from "./SectionHeader";
 import { StatRow } from "./StatRow";
-import { theme, hexA, formatDue, isUrgent } from "@/lib/theme";
+import { theme, hexA, formatDue, isUrgent, clock } from "@/lib/theme";
 import type { Assignment } from "@/lib/types";
+
+function dueDateTime(d: Date) {
+  return `${d.toLocaleDateString("en-PH", { month: "short", day: "numeric" }).toUpperCase()} ${clock(d)}`;
+}
 
 export function AssignmentsPanel() {
   const now = useNow(30000);
@@ -70,8 +74,13 @@ export function AssignmentsPanel() {
                   style={{ backgroundColor: isSelected ? hexA(theme.accent, 0.16) : "transparent", borderLeft: `2px solid ${isSelected ? theme.accent : "transparent"}` }}
                 >
                   <Circle size={8} fill={a.done ? theme.ink : "none"} style={{ color: urgent ? theme.accent : theme.inkMuted, flexShrink: 0 }} />
-                  <span className={`text-xs truncate ${a.done ? "line-through opacity-60" : ""}`} style={{ color: isSelected ? theme.ink : theme.inkMuted }}>
-                    <span style={{ color: theme.inkFaint }}>{a.course}</span> · {a.title}
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-xs truncate ${a.done ? "line-through opacity-60" : ""}`} style={{ color: isSelected ? theme.ink : theme.inkMuted }}>
+                      <span style={{ color: theme.inkFaint }}>{a.course}</span> · {a.title}
+                    </span>
+                    <span className="block text-[10px] tracking-wide" style={{ color: urgent ? theme.accent : theme.inkFaint }}>
+                      {dueDateTime(due)}
+                    </span>
                   </span>
                 </button>
               </li>
@@ -96,20 +105,33 @@ export function AssignmentsPanel() {
           <h2 className={`text-lg font-semibold mb-2 ${selected.done ? "line-through opacity-60" : ""}`}>{selected.title}</h2>
           {selected.note && <p className="text-sm mb-4 max-w-sm" style={{ color: theme.inkMuted }}>{selected.note}</p>}
           <div className="border-t border-dashed pt-3 max-w-sm" style={{ borderColor: theme.border }}>
-            <StatRow label="DUE" value={selectedDue.toLocaleDateString("en-PH", { month: "short", day: "numeric" }).toUpperCase()} />
+            <StatRow label="DUE" value={dueDateTime(selectedDue)} />
             <StatRow label="COUNTDOWN" value={formatDue(selectedDue, now)} valueColor={isUrgent(selectedDue, now) && !selected.done ? theme.accent : theme.ink} />
             <StatRow label="STATUS" value={selected.done ? "DONE" : "PENDING"} valueColor={selected.done ? theme.ink : theme.inkMuted} pulse={pulse} />
             {selected.done && (
               <StatRow label="LEAVES LIST" value="24H AFTER MARKING DONE" valueColor={theme.inkFaint} />
             )}
           </div>
-          <button
-            onClick={() => toggleDone(selected)}
-            className="mt-4 text-xs tracking-widest px-3 py-2 border"
-            style={{ borderColor: theme.accent, color: selected.done ? theme.inkMuted : theme.accent }}
-          >
-            {selected.done ? "(↺) MARK PENDING" : "(⏎) MARK DONE"}
-          </button>
+          <div className="flex items-center gap-3 mt-4">
+            <button
+              onClick={() => toggleDone(selected)}
+              className="text-xs tracking-widest px-3 py-2 border"
+              style={{ borderColor: theme.accent, color: selected.done ? theme.inkMuted : theme.accent }}
+            >
+              {selected.done ? "(↺) MARK PENDING" : "(⏎) MARK DONE"}
+            </button>
+            {selected.canvasUrl && (
+              <a
+                href={selected.canvasUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs tracking-widest"
+                style={{ color: theme.inkMuted }}
+              >
+                OPEN IN CANVAS ↗
+              </a>
+            )}
+          </div>
         </div>
       </Panel>
     </div>

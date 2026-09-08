@@ -83,6 +83,20 @@ async function main() {
     if (!String(e?.message ?? e).includes("duplicate column")) throw e;
     console.log('"spotifyRefreshToken" column already exists on Settings — skipped.');
   }
+  try {
+    await client.execute(`ALTER TABLE "Assignment" ADD COLUMN "canvasUrl" TEXT`);
+    console.log('Added "canvasUrl" column to Assignment.');
+  } catch (e: any) {
+    if (!String(e?.message ?? e).includes("duplicate column")) throw e;
+    console.log('"canvasUrl" column already exists on Assignment — skipped.');
+  }
+  try {
+    await client.execute(`ALTER TABLE "Exam" ADD COLUMN "canvasUrl" TEXT`);
+    console.log('Added "canvasUrl" column to Exam.');
+  } catch (e: any) {
+    if (!String(e?.message ?? e).includes("duplicate column")) throw e;
+    console.log('"canvasUrl" column already exists on Exam — skipped.');
+  }
   console.log(`Created/verified ${statements.length} tables/indexes on Turso.`);
 }
 

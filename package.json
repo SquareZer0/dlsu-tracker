@@ -12,6 +12,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "sync:canvas": "tsx scripts/sync-canvas.ts",
     "cleanup:assignments": "tsx scripts/cleanup-junk-assignments.ts",
+    "cleanup:duplicates": "tsx scripts/cleanup-duplicate-assignments.ts",
     "notify:check": "tsx scripts/check-notify.ts"
   },
   "dependencies": {

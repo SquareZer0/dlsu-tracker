@@ -16,6 +16,24 @@ function isNonAssignmentNotice(course: string, title: string) {
   return isBareCourseSession || isReminderNotice;
 }
 
+// DLSU's Canvas feed includes every lab section's calendar, not just the one
+// Miguel is enrolled in, so the same assignment shows up once per section
+// with a near-identical title ("H01: ..." vs "H 01: ..."). Those land as
+// separate VEVENTs with different UIDs, so upserting on externalId alone
+// doesn't catch them — dedupe within a run by comparing whitespace-stripped
+// titles instead.
+function normalize(title: string) {
+  return title.replace(/\s+/g, "").toLowerCase();
+}
+
+const URL_RE = /https?:\/\/\S+/;
+
+function extractCanvasUrl(ev: any): string | null {
+  if (typeof ev.url === "string" && ev.url) return ev.url;
+  const match = URL_RE.exec(ev.description ?? "");
+  return match ? match[0].replace(/[)>.,]+$/, "") : null;
+}
+
 // Runs server-side, so there's no CORS wall here the way there was when the
 // browser tried to fetch Canvas directly in the design mockup.
 export async function POST() {
@@ -30,6 +48,8 @@ export async function POST() {
   let assignments = 0;
   let exams = 0;
   let skipped = 0;
+  let duplicates = 0;
+  const seenNormKeys = new Set<string>();
 
   for (const key in data) {
     const ev: any = data[key];
@@ -46,24 +66,32 @@ export async function POST() {
     }
 
     const isExam = /\bexam\b/i.test(title);
+    const normKey = `${isExam ? "exam" : "assignment"}|${course}|${normalize(title)}`;
+    if (seenNormKeys.has(normKey)) {
+      duplicates++;
+      continue;
+    }
+    seenNormKeys.add(normKey);
+
+    const canvasUrl = extractCanvasUrl(ev);
 
     if (isExam) {
       await prisma.exam.upsert({
         where: { externalId: ev.uid },
-        update: { title, course, dueAt: ev.start },
-        create: { externalId: ev.uid, title, course, dueAt: ev.start },
+        update: { title, course, dueAt: ev.start, canvasUrl },
+        create: { externalId: ev.uid, title, course, dueAt: ev.start, canvasUrl },
       });
       exams++;
     } else {
       await prisma.assignment.upsert({
         where: { externalId: ev.uid },
-        update: { title, course, dueAt: ev.start },
-        create: { externalId: ev.uid, title, course, dueAt: ev.start },
+        update: { title, course, dueAt: ev.start, canvasUrl },
+        create: { externalId: ev.uid, title, course, dueAt: ev.start, canvasUrl },
       });
       assignments++;
     }
   }
 
-  return NextResponse.json({ assignments, exams, skipped });
+  return NextResponse.json({ assignments, exams, skipped, duplicates });
 }
 
