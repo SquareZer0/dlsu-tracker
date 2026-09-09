@@ -11,7 +11,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
   if (pathname.startsWith("/api")) {
-    if (pathname.startsWith("/api/cron")) return NextResponse.next();
+    // /api/cron/* and /api/companion check their own auth (bearer secret
+    // for cron-fired requests) since the digest call has no browser cookie.
+    if (pathname.startsWith("/api/cron") || pathname.startsWith("/api/companion")) return NextResponse.next();
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const url = req.nextUrl.clone();

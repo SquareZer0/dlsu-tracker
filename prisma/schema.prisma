@@ -60,3 +60,9 @@ model NotifyLog {
   key    String   @unique
   sentAt DateTime @default(now())
 }
+
+model CompanionDigest {
+  id        Int      @id @default(1)
+  text      String
+  createdAt DateTime @default(now())
+}

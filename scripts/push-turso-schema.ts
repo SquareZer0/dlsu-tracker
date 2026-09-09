@@ -60,6 +60,11 @@ const statements = [
     "sentAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "NotifyLog_key_key" ON "NotifyLog"("key")`,
+  `CREATE TABLE IF NOT EXISTS "CompanionDigest" (
+    "id" INTEGER NOT NULL PRIMARY KEY,
+    "text" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
 ];
 
 async function main() {

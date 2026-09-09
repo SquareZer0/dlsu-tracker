@@ -1,0 +1,19 @@
+name: Companion Digest
+
+on:
+  schedule:
+    # once a day — this feeds the cached proactive observation the
+    # sidebar companion shows on load, not a live call per page view
+    - cron: "0 23 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refresh the companion digest
+        run: |
+          curl -sf -X POST "${{ secrets.APP_URL }}/api/companion" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{"mode":"digest"}'
