@@ -4,7 +4,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RotateCcw } from "
 import { Panel } from "./Panel";
 import { hexA } from "@/lib/theme";
 import { useTheme } from "@/lib/theme-context";
-import type { GCalEvent } from "@/app/api/gcal/route";
+import type { GCalEvent } from "@/lib/gcal";
 
 type MiniCalendarPanelProps = {
   eventsByDate: Record<string, { count: number; events: GCalEvent[] }>;

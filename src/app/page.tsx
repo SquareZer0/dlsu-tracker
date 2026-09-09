@@ -15,7 +15,7 @@ import { ScheduleTimeline } from "@/components/ScheduleTimeline";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { MiniCalendarPanel } from "@/components/MiniCalendarPanel";
 import { GCalSideRail } from "@/components/AgendaPanel";
-import type { GCalEvent } from "@/app/api/gcal/route";
+import type { GCalEvent } from "@/lib/gcal";
 
 const links = [
   { href: "/assignments", label: "Assignments" },

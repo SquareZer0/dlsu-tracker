@@ -3,7 +3,7 @@ import { Clock, MapPin, Sparkles, AlertCircle } from "lucide-react";
 import { Panel } from "./Panel";
 import { hexA } from "@/lib/theme";
 import { useTheme } from "@/lib/theme-context";
-import type { GCalEvent } from "@/app/api/gcal/route";
+import type { GCalEvent } from "@/lib/gcal";
 
 type AgendaPanelProps = {
   title: string;
