@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { AUTH_COOKIE, isAuthedCookie } from "@/lib/auth";
 import { getUserSnapshot, formatSnapshot } from "@/lib/snapshot";
+import { createCalendarEvent } from "@/lib/googleCalendar";
 
 export const dynamic = "force-dynamic";
 
@@ -24,17 +25,41 @@ const SYSTEM_PROMPT =
   "invent numbers or deadlines that aren't in it. " +
   'Before your reply, output exactly one line containing only a JSON object tagging its topic: {"topic":"workload"} ' +
   'for assignments/exams/deadlines, {"topic":"budget"} for money/spending, or {"topic":"schedule"} for classes, ' +
-  "calendar, or anything else. Then a newline, then your reply. Nothing else before the JSON line.";
+  "calendar, or anything else. " +
+  'If — and only if — the user is clearly asking you to add/schedule/create something on their calendar, also ' +
+  'include an "action" field on that same JSON object: {"topic":"schedule","action":{"type":"create_event",' +
+  '"title":"...","start":"2026-09-10T15:00:00+08:00","end":"2026-09-10T16:00:00+08:00","location":"..."}}. ' +
+  "Resolve relative dates/times (\"tomorrow at 3\", \"next Friday\") against NOW in the SNAPSHOT below, always as " +
+  "ISO 8601 with the +08:00 offset. If no end time is given, make the event 1 hour long. location is optional — " +
+  'omit it entirely if not mentioned. Never include "action" for anything that isn\'t explicitly a scheduling request. ' +
+  "Then a newline, then your reply — written as if the event is already on the calendar (it will be by the time " +
+  "you're read). Nothing else before the JSON line.";
 
-// Pulls the leading {"topic":"..."} line back out of a tagged reply.
-// Used server-side for the (non-streaming) digest; the streaming query
-// reply is tagged the same way but parsed client-side as tokens arrive.
-function parseTopicTag(raw: string): { topic: Topic; body: string } {
+type CreateEventAction = { type: "create_event"; title: string; start: string; end: string; location?: string };
+
+// Pulls the leading {"topic":..., "action":...} line back out of a tagged
+// reply. Used server-side for the (non-streaming) digest and to detect
+// create_event requests; the streaming query reply is tagged the same way
+// but its topic is parsed client-side too, as tokens arrive.
+function parseTag(raw: string): { topic: Topic; action: CreateEventAction | null; body: string } {
   const nl = raw.indexOf("\n");
-  if (nl === -1) return { topic: "schedule", body: raw.trim() };
-  const match = raw.slice(0, nl).match(/"topic"\s*:\s*"(\w+)"/);
-  const topic = (match && (TOPICS as readonly string[]).includes(match[1]) ? match[1] : "schedule") as Topic;
-  return { topic, body: raw.slice(nl + 1).trim() };
+  const tagLine = nl === -1 ? raw : raw.slice(0, nl);
+  const body = nl === -1 ? "" : raw.slice(nl + 1).trim();
+
+  const topicMatch = tagLine.match(/"topic"\s*:\s*"(\w+)"/);
+  const topic = (topicMatch && (TOPICS as readonly string[]).includes(topicMatch[1]) ? topicMatch[1] : "schedule") as Topic;
+
+  let action: CreateEventAction | null = null;
+  try {
+    const parsed = JSON.parse(tagLine);
+    if (parsed?.action?.type === "create_event" && parsed.action.title && parsed.action.start && parsed.action.end) {
+      action = parsed.action;
+    }
+  } catch {
+    // tagLine wasn't (yet, or ever) valid standalone JSON — no action, that's fine
+  }
+
+  return { topic, action, body };
 }
 
 // GET returns the cached daily digest for the sidebar to show on load —
@@ -71,7 +96,7 @@ export async function POST(req: NextRequest) {
       ],
     });
     const raw = message.content.find((b) => b.type === "text")?.text ?? "";
-    const { topic, body: text } = parseTopicTag(raw);
+    const { topic, body: text } = parseTag(raw); // digest is non-interactive — any "action" is ignored
     const digest = await prisma.companionDigest.upsert({
       where: { id: 1 },
       update: { text, topic },
@@ -96,24 +121,72 @@ export async function POST(req: NextRequest) {
   });
 
   // Raw text (topic-tag line included) is streamed through as-is — the
-  // client parses the tag out of the first line as tokens arrive.
+  // client parses the tag out of the first line as tokens arrive. The one
+  // exception is a create_event reply: we can't let the model's "done!"
+  // text reach the client until the calendar write has actually been
+  // attempted, so that specific case is buffered in full instead of
+  // streamed token-by-token.
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       // "end" fires even after "error" (e.g. an auth failure before any
       // token arrives) — a controller can only be closed/errored once.
       let settled = false;
-      messageStream.on("text", (text) => controller.enqueue(encoder.encode(text)));
-      messageStream.on("end", () => {
+      const close = () => {
         if (settled) return;
         settled = true;
         controller.close();
-      });
-      messageStream.on("error", (err) => {
+      };
+      const fail = (err: unknown) => {
         if (settled) return;
         settled = true;
         controller.error(err);
+      };
+
+      let raw = "";
+      let tagSeen = false;
+      let action: CreateEventAction | null = null;
+      let live = false; // once true, chunks are forwarded as they arrive
+
+      messageStream.on("text", (text) => {
+        raw += text;
+        if (!tagSeen) {
+          const nl = raw.indexOf("\n");
+          if (nl === -1) return; // still buffering the tag line
+          tagSeen = true;
+          action = parseTag(raw).action;
+          if (!action) {
+            controller.enqueue(encoder.encode(raw)); // flush the tag line (+ anything already after it)
+            live = true;
+          }
+          // an action reply stays buffered — see the "end" handler below
+          return;
+        }
+        if (live) controller.enqueue(encoder.encode(text));
       });
+
+      messageStream.on("end", async () => {
+        if (settled || live) {
+          close();
+          return;
+        }
+        if (!action) {
+          // never found a newline at all (short reply, no body) — just send it
+          controller.enqueue(encoder.encode(raw));
+          close();
+          return;
+        }
+        try {
+          await createCalendarEvent(action);
+          controller.enqueue(encoder.encode(raw)); // the model's own confirmation text
+        } catch {
+          const { topic } = parseTag(raw);
+          controller.enqueue(encoder.encode(`{"topic":"${topic}"}\ncouldn't reach your calendar just now — mind trying again in a bit?`));
+        }
+        close();
+      });
+
+      messageStream.on("error", (err) => fail(err));
     },
   });
 

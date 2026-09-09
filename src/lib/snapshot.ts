@@ -36,7 +36,11 @@ export function formatSnapshot(s: UserSnapshot): string {
   const now = Date.now();
   const days = (d: Date) => Math.round((new Date(d).getTime() - now) / 86400000);
 
-  const lines = [`BALANCE: PHP ${s.balance.toFixed(2)}`];
+  // ISO with the +08:00 offset spelled out, since the model has no innate
+  // sense of "now" and needs a concrete anchor to resolve things like
+  // "tomorrow at 3pm" into a real calendar-event timestamp.
+  const nowManila = new Date(now).toLocaleString("sv-SE", { timeZone: "Asia/Manila" }).replace(" ", "T") + "+08:00";
+  const lines = [`NOW: ${nowManila}`, `BALANCE: PHP ${s.balance.toFixed(2)}`];
 
   lines.push(
     s.recentTransactions.length

@@ -53,6 +53,7 @@ model Settings {
   balance             Float   @default(3500)
   canvasUrl           String?
   spotifyRefreshToken String?
+  googleRefreshToken  String?
 }
 
 model NotifyLog {

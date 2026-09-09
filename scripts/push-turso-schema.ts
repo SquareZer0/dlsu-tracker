@@ -109,6 +109,13 @@ async function main() {
     if (!String(e?.message ?? e).includes("duplicate column")) throw e;
     console.log('"topic" column already exists on CompanionDigest — skipped.');
   }
+  try {
+    await client.execute(`ALTER TABLE "Settings" ADD COLUMN "googleRefreshToken" TEXT`);
+    console.log('Added "googleRefreshToken" column to Settings.');
+  } catch (e: any) {
+    if (!String(e?.message ?? e).includes("duplicate column")) throw e;
+    console.log('"googleRefreshToken" column already exists on Settings — skipped.');
+  }
   console.log(`Created/verified ${statements.length} tables/indexes on Turso.`);
 }
 
