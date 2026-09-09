@@ -9,7 +9,7 @@ export function CompanionSidebar() {
   const pathname = usePathname();
   if (pathname === "/login") return null;
   return (
-    <div className="hidden xl:block shrink-0">
+    <div className="hidden xl:block">
       <InsightCompanion />
     </div>
   );

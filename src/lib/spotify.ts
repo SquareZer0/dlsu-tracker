@@ -39,7 +39,10 @@ async function getPlaylistTracks(): Promise<Track[]> {
 
   while (url) {
     const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) throw new Error(`Spotify playlist request failed (${res.status})`);
+    if (!res.ok) {
+      const hint = res.status === 401 ? " — access token was rejected, try reconnecting at /api/spotify/login" : "";
+      throw new Error(`Spotify playlist request failed (${res.status})${hint}`);
+    }
     const data = await res.json();
     for (const entry of data.items ?? []) {
       const t = entry.item ?? entry.track; // defensive: fall back to the old field name if needed

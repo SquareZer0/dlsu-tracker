@@ -44,6 +44,7 @@ export default function InsightCompanion() {
   const active = useRef<SetKey>("idle");
   const frameIdx = useRef(0);
   const setActive = (key: SetKey) => { active.current = key; frameIdx.current = 0; };
+  const busy = useRef(false); // true while a reply (asked or ambient) is in flight
 
   // continuous frame engine
   useEffect(() => {
@@ -91,6 +92,7 @@ export default function InsightCompanion() {
   // then everything after that line is the real message, typed into the
   // bubble as tokens actually arrive (no simulated per-character delay).
   async function talkPhaseStream(question: string) {
+    busy.current = true;
     setTag("talking");
     setActive("idle");
     await flashGlyph("...", "#e8dfc9", 850 + Math.random() * 300);
@@ -137,21 +139,43 @@ export default function InsightCompanion() {
     setActive("idle");
     await sleep(400);
     await flashGlyph(t.glyph, t.accent, 700);
+    busy.current = false;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!query.trim()) return;
+    if (!query.trim() || busy.current) return;
     const q = query.trim();
     setQuery("");
     await talkPhaseStream(q);
   }
 
+  // Every few minutes, unprompted, glance at the dashboard and say
+  // something about it — reuses the exact same streamed reply + topic
+  // tagging as a real question, just with a self-generated prompt.
+  useEffect(() => {
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const loop = () => {
+      timer = setTimeout(async () => {
+        if (!alive) return;
+        if (!busy.current) {
+          await talkPhaseStream(
+            "(unprompted aside — don't wait for me to ask) Glance at my dashboard and say one short, playful thing about whatever stands out right now: a deadline, my balance, today's schedule, anything."
+          );
+        }
+        if (alive) loop();
+      }, 150000 + Math.random() * 180000); // every ~2.5-5.5 min
+    };
+    loop();
+    return () => { alive = false; clearTimeout(timer); };
+  }, []);
+
   return (
     <div style={{
-      width: 320, height: "100vh", position: "relative",
+      width: 320, height: "100vh", position: "fixed", top: 0, left: 0, zIndex: 40,
       fontFamily: "'Courier New', monospace", color: "#e8dfc9",
-      background: "#0d0c0a", borderRight: "1px solid #232018", overflow: "hidden",
+      background: "transparent", overflow: "hidden", pointerEvents: "none",
     }}>
       <div style={{ position: "absolute", top: 14, left: 14, fontSize: 11, color: "#4a4437", letterSpacing: 1 }}>
         / COMPANION
@@ -185,7 +209,7 @@ export default function InsightCompanion() {
 
       <div style={{ position: "absolute", bottom: 60, left: 20, right: 20, borderTop: "1px dotted #6e665a" }} />
 
-      <form onSubmit={handleSubmit} style={{ position: "absolute", bottom: 24, left: 24, right: 24 }}>
+      <form onSubmit={handleSubmit} style={{ position: "absolute", bottom: 24, left: 24, right: 24, pointerEvents: "auto" }}>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
