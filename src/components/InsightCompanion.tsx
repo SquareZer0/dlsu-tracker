@@ -204,7 +204,7 @@ export default function InsightCompanion() {
 
   return (
     <div style={{
-      width: 256, height: "100vh", position: "fixed", top: 0, left: 0, zIndex: 40,
+      width: "100%", height: "100%", position: "relative",
       fontFamily: "'Courier New', monospace", color: "#e8dfc9",
       background: "transparent", overflow: "hidden", pointerEvents: "none",
     }}>
