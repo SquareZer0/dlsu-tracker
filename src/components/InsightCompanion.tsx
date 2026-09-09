@@ -28,16 +28,30 @@ const TOPICS = {
 
 type Topic = keyof typeof TOPICS;
 
+// Temporary, session-only scrollback — the last few exchanges (yours and
+// the companion's unprompted asides) stay visible above the sprite
+// instead of a single bubble that fades a few seconds after typing.
+type Exchange = { id: number; you: string; text: string; border: string; shadow: string; done: boolean };
+const MAX_HISTORY = 6;
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function InsightCompanion() {
   const [spriteSrc, setSpriteSrc] = useState(SPRITE("idle1"));
   const [tag, setTag] = useState("idle");
   const [glyph, setGlyph] = useState<{ sym: string; color: string; show: boolean }>({ sym: "!", color: "#e8dfc9", show: false });
-  const [bubble, setBubble] = useState<{ text: string; show: boolean; border: string; shadow: string }>({
-    text: "", show: false, border: "#6e665a", shadow: "none",
-  });
+  // The current reply lives in `activeMsg` — a single prominent bubble
+  // right above the sprite. Once it's held on screen a while, it graduates
+  // into `history` (smaller, muted, scrollable) and activeMsg clears.
+  const [activeMsg, setActiveMsg] = useState<Exchange | null>(null);
+  const [history, setHistory] = useState<Exchange[]>([]);
   const [query, setQuery] = useState("");
+  const historyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = historyRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [history]);
 
   // active set is a ref, not state — the frame loop reads it every tick
   // without needing to restart the effect/interval on every state change.
@@ -90,8 +104,9 @@ export default function InsightCompanion() {
   // Streams the reply from /api/companion. The model tags its own topic as
   // a leading {"topic":"..."} line — buffered until the first newline,
   // then everything after that line is the real message, typed into the
-  // bubble as tokens actually arrive (no simulated per-character delay).
-  async function talkPhaseStream(question: string) {
+  // single active bubble as tokens actually arrive (no simulated per-char
+  // delay). Once done, it lingers there, then graduates into `history`.
+  async function talkPhaseStream(question: string, you: string) {
     busy.current = true;
     setTag("talking");
     setActive("idle");
@@ -100,6 +115,8 @@ export default function InsightCompanion() {
     let raw = "";
     let topic: Topic | null = null;
     let bodyStart = 0;
+    let errored = false;
+    const id = Date.now();
 
     try {
       const res = await fetch("/api/companion", {
@@ -122,21 +139,28 @@ export default function InsightCompanion() {
           bodyStart = nl + 1;
           const t = TOPICS[topic];
           setTag(`talking · ${topic}`);
-          setBubble((b) => ({ ...b, border: t.border, shadow: t.shadow, show: true, text: "" }));
           setActive(t.set);
+          setActiveMsg({ id, you, text: "", border: t.border, shadow: t.shadow, done: false });
         }
-        setBubble((b) => ({ ...b, text: raw.slice(bodyStart) }));
+        const text = raw.slice(bodyStart);
+        setActiveMsg((m) => (m && m.id === id ? { ...m, text } : m));
       }
     } catch {
-      setBubble((b) => ({ ...b, show: true, text: "connection dropped." }));
+      errored = true;
     }
 
     const resolved = topic ?? "schedule";
     const t = TOPICS[resolved];
-    await sleep(2500);
-
-    setBubble((b) => ({ ...b, show: false }));
+    const finalText = errored ? "connection dropped." : raw.slice(bodyStart) || "...";
+    const finished: Exchange = { id, you, text: finalText, border: t.border, shadow: t.shadow, done: true };
+    setActiveMsg(finished);
     setActive("idle");
+
+    await sleep(2500); // lingers as the single prominent bubble
+
+    setActiveMsg((m) => (m && m.id === id ? null : m)); // graduate — unless a newer reply already took over
+    setHistory((h) => [...h, finished].slice(-MAX_HISTORY));
+
     await sleep(400);
     await flashGlyph(t.glyph, t.accent, 700);
     busy.current = false;
@@ -147,7 +171,7 @@ export default function InsightCompanion() {
     if (!query.trim() || busy.current) return;
     const q = query.trim();
     setQuery("");
-    await talkPhaseStream(q);
+    await talkPhaseStream(q, q);
   }
 
   // Every few minutes, unprompted, glance at the dashboard and say
@@ -161,7 +185,8 @@ export default function InsightCompanion() {
         if (!alive) return;
         if (!busy.current) {
           await talkPhaseStream(
-            "(unprompted aside — don't wait for me to ask) Glance at my dashboard and say one short, playful thing about whatever stands out right now: a deadline, my balance, today's schedule, anything."
+            "(unprompted aside — don't wait for me to ask) Glance at my dashboard and say one short, playful thing about whatever stands out right now: a deadline, my balance, today's schedule, anything.",
+            ""
           );
         }
         if (alive) loop();
@@ -173,7 +198,7 @@ export default function InsightCompanion() {
 
   return (
     <div style={{
-      width: 320, height: "100vh", position: "fixed", top: 0, left: 0, zIndex: 40,
+      width: 256, height: "100vh", position: "fixed", top: 0, left: 0, zIndex: 40,
       fontFamily: "'Courier New', monospace", color: "#e8dfc9",
       background: "transparent", overflow: "hidden", pointerEvents: "none",
     }}>
@@ -191,13 +216,57 @@ export default function InsightCompanion() {
         {glyph.sym}
       </div>
 
+      {/* One flex column, bottom-anchored just above the sprite, so a
+          single bubble sits right above her by default. Older,
+          "graduated" exchanges (muted, capped height, own scroll) stack
+          above the current one instead of overlapping it. */}
       <div style={{
-        position: "absolute", left: 20, bottom: 350, maxWidth: 250, minHeight: 20,
-        border: `1px solid ${bubble.border}`, boxShadow: bubble.shadow, padding: 12,
-        fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap",
-        opacity: bubble.show ? 1 : 0, transition: "opacity .4s ease, border-color .3s ease, box-shadow .3s ease",
+        position: "absolute", left: 16, right: 16, top: 46, bottom: 330,
+        display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 12,
+        pointerEvents: "auto",
       }}>
-        {bubble.text}
+        {history.length > 0 && (
+          <div
+            ref={historyRef}
+            className="hud-scroll"
+            style={{
+              maxHeight: 200, overflowY: "auto", display: "flex", flexDirection: "column",
+              justifyContent: "flex-end", gap: 8, opacity: 0.6, flexShrink: 0,
+            }}
+          >
+            {history.map((ex) => (
+              <div key={ex.id}>
+                {ex.you && (
+                  <div style={{ fontSize: 10, color: "#4a4437", textAlign: "right", marginBottom: 2 }}>
+                    &gt; {ex.you}
+                  </div>
+                )}
+                <div style={{ border: `1px solid ${ex.border}`, padding: 8, fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                  {ex.text}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* The current reply — a single prominent bubble. Lingers here,
+            then talkPhaseStream graduates it into the scrollback above. */}
+        {activeMsg && (
+          <div style={{ flexShrink: 0 }}>
+            {activeMsg.you && (
+              <div style={{ fontSize: 11, color: "#6e665a", textAlign: "right", marginBottom: 4 }}>
+                &gt; {activeMsg.you}
+              </div>
+            )}
+            <div style={{
+              border: `1px solid ${activeMsg.border}`, boxShadow: activeMsg.shadow, padding: 12,
+              fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap",
+            }}>
+              {activeMsg.text}
+              {!activeMsg.done && <span style={{ color: activeMsg.border }}>▋</span>}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* eslint-disable-next-line @next/next/no-img-element */}

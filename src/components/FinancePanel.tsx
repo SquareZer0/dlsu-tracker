@@ -67,7 +67,7 @@ export function FinancePanel() {
           ))}
         </div>
       )}
-      <div className="max-h-32 overflow-y-auto mb-2">
+      <div className="hud-scroll max-h-32 overflow-y-auto mb-2">
         {transactions.map((tx) => (
           <StatRow
             key={tx.id}

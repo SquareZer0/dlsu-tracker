@@ -22,10 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${mono.variable} font-mono min-h-screen pb-16 md:pb-0`}>
         <ThemeProvider>
           {/* CompanionSidebar is position:fixed (stays put while the page
-              scrolls) — the xl:ml-80 below just reserves its 320px width
+              scrolls) — the xl:ml-64 below just reserves its 256px width
               so dashboard content doesn't render underneath it. */}
           <CompanionSidebar />
-          <div className="xl:ml-80 min-w-0">{children}</div>
+          <div className="xl:ml-64 min-w-0">{children}</div>
         </ThemeProvider>
       </body>
     </html>
