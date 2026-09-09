@@ -102,6 +102,13 @@ async function main() {
     if (!String(e?.message ?? e).includes("duplicate column")) throw e;
     console.log('"canvasUrl" column already exists on Exam — skipped.');
   }
+  try {
+    await client.execute(`ALTER TABLE "CompanionDigest" ADD COLUMN "topic" TEXT NOT NULL DEFAULT 'schedule'`);
+    console.log('Added "topic" column to CompanionDigest.');
+  } catch (e: any) {
+    if (!String(e?.message ?? e).includes("duplicate column")) throw e;
+    console.log('"topic" column already exists on CompanionDigest — skipped.');
+  }
   console.log(`Created/verified ${statements.length} tables/indexes on Turso.`);
 }
 

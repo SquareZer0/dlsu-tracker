@@ -13,11 +13,28 @@ const anthropic = new Anthropic();
 const DIGEST_MODEL = "claude-sonnet-5";
 const QUERY_MODEL = "claude-sonnet-5";
 
+const TOPICS = ["workload", "budget", "schedule"] as const;
+type Topic = (typeof TOPICS)[number];
+
 const SYSTEM_PROMPT =
   "You are a terse terminal companion embedded in a student's dashboard app. " +
   "Reply in 1-3 short sentences, plain text only — no markdown, no bullet points, no headers, no greetings or sign-offs. " +
   "Sound like a dry terminal readout, not a chatbot. Use the SNAPSHOT data below when it's relevant to what's asked, " +
-  "and never invent numbers or deadlines that aren't in it.";
+  "and never invent numbers or deadlines that aren't in it. " +
+  'Before your reply, output exactly one line containing only a JSON object tagging its topic: {"topic":"workload"} ' +
+  'for assignments/exams/deadlines, {"topic":"budget"} for money/spending, or {"topic":"schedule"} for classes, ' +
+  "calendar, or anything else. Then a newline, then your reply. Nothing else before the JSON line.";
+
+// Pulls the leading {"topic":"..."} line back out of a tagged reply.
+// Used server-side for the (non-streaming) digest; the streaming query
+// reply is tagged the same way but parsed client-side as tokens arrive.
+function parseTopicTag(raw: string): { topic: Topic; body: string } {
+  const nl = raw.indexOf("\n");
+  if (nl === -1) return { topic: "schedule", body: raw.trim() };
+  const match = raw.slice(0, nl).match(/"topic"\s*:\s*"(\w+)"/);
+  const topic = (match && (TOPICS as readonly string[]).includes(match[1]) ? match[1] : "schedule") as Topic;
+  return { topic, body: raw.slice(nl + 1).trim() };
+}
 
 // GET returns the cached daily digest for the sidebar to show on load —
 // never calls the model itself.
@@ -26,7 +43,7 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   const digest = await prisma.companionDigest.findUnique({ where: { id: 1 } });
-  return Response.json({ text: digest?.text ?? null, createdAt: digest?.createdAt ?? null });
+  return Response.json({ text: digest?.text ?? null, topic: digest?.topic ?? "schedule", createdAt: digest?.createdAt ?? null });
 }
 
 export async function POST(req: NextRequest) {
@@ -52,13 +69,14 @@ export async function POST(req: NextRequest) {
         },
       ],
     });
-    const text = message.content.find((b) => b.type === "text")?.text ?? "";
+    const raw = message.content.find((b) => b.type === "text")?.text ?? "";
+    const { topic, body: text } = parseTopicTag(raw);
     const digest = await prisma.companionDigest.upsert({
       where: { id: 1 },
-      update: { text },
-      create: { id: 1, text },
+      update: { text, topic },
+      create: { id: 1, text, topic },
     });
-    return Response.json({ text: digest.text, createdAt: digest.createdAt });
+    return Response.json({ text: digest.text, topic: digest.topic, createdAt: digest.createdAt });
   }
 
   if (!(await isAuthedCookie(req.cookies.get(AUTH_COOKIE)?.value))) {
@@ -76,6 +94,8 @@ export async function POST(req: NextRequest) {
     messages: [{ role: "user", content: question }],
   });
 
+  // Raw text (topic-tag line included) is streamed through as-is — the
+  // client parses the tag out of the first line as tokens arrive.
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {

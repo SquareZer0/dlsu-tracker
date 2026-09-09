@@ -64,5 +64,6 @@ model NotifyLog {
 model CompanionDigest {
   id        Int      @id @default(1)
   text      String
+  topic     String   @default("schedule")
   createdAt DateTime @default(now())
 }
