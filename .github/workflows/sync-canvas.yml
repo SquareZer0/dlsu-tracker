@@ -1,0 +1,17 @@
+name: Sync Canvas
+
+on:
+  schedule:
+    # hourly — assignments/exams are usually posted well ahead of time, so
+    # this doesn't need notify.yml's 15-minute cadence
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit the Canvas sync endpoint
+        run: |
+          curl -sf -X POST "${{ secrets.APP_URL }}/api/cron/sync-canvas" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
