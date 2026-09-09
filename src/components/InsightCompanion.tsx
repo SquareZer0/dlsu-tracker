@@ -36,6 +36,12 @@ const MAX_HISTORY = 6;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Same diagonal-cut corner the dashboard's own panels use (see
+// lib/theme.ts's notch()) — reproduced locally since this component is
+// intentionally self-contained/inline-styled.
+const notch = (size = 8) =>
+  `polygon(0 0, calc(100% - ${size}px) 0, 100% ${size}px, 100% 100%, 0 100%)`;
+
 export default function InsightCompanion() {
   const [spriteSrc, setSpriteSrc] = useState(SPRITE("idle1"));
   const [tag, setTag] = useState("idle");
@@ -230,8 +236,12 @@ export default function InsightCompanion() {
             ref={historyRef}
             className="hud-scroll"
             style={{
+              // justify-content:flex-end on a scrolling flex container clips
+              // content pushed above the top instead of making it scrollable
+              // (scrollTop can't go negative) — plain top-to-bottom flow plus
+              // the scrollTop-to-bottom effect below is the correct pattern.
               maxHeight: 200, overflowY: "auto", display: "flex", flexDirection: "column",
-              justifyContent: "flex-end", gap: 8, opacity: 0.6, flexShrink: 0,
+              gap: 8, opacity: 0.6, flexShrink: 0,
             }}
           >
             {history.map((ex) => (
@@ -241,7 +251,10 @@ export default function InsightCompanion() {
                     &gt; {ex.you}
                   </div>
                 )}
-                <div style={{ border: `1px solid ${ex.border}`, padding: 8, fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                <div style={{
+                  border: `1px solid ${ex.border}`, clipPath: notch(6), padding: 8,
+                  fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap",
+                }}>
                   {ex.text}
                 </div>
               </div>
@@ -259,12 +272,18 @@ export default function InsightCompanion() {
               </div>
             )}
             <div style={{
-              border: `1px solid ${activeMsg.border}`, boxShadow: activeMsg.shadow, padding: 12,
+              border: `1px solid ${activeMsg.border}`, clipPath: notch(10), boxShadow: activeMsg.shadow, padding: 12,
               fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap",
             }}>
               {activeMsg.text}
               {!activeMsg.done && <span style={{ color: activeMsg.border }}>▋</span>}
             </div>
+            {/* speech-bubble tail, pointing down toward the sprite */}
+            <div style={{
+              width: 0, height: 0, marginLeft: 18,
+              borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
+              borderTop: `7px solid ${activeMsg.border}`,
+            }} />
           </div>
         )}
       </div>
