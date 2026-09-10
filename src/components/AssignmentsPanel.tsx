@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Circle, ListChecks, Sparkles } from "lucide-react";
+import { Circle, ListChecks, Plus, Sparkles } from "lucide-react";
 import { useNow } from "@/lib/hooks";
 import { Panel } from "./Panel";
 import { SectionHeader } from "./SectionHeader";
 import { StatRow } from "./StatRow";
 import { hexA, formatDue, isUrgent, clock } from "@/lib/theme";
-import { useTheme } from "@/lib/theme-context";
+import { useTheme, useThemeMode } from "@/lib/theme-context";
 import type { Assignment } from "@/lib/types";
 
 function dueDateTime(d: Date) {
@@ -15,10 +15,15 @@ function dueDateTime(d: Date) {
 
 export function AssignmentsPanel() {
   const theme = useTheme();
+  const { mode } = useThemeMode();
   const now = useNow(30000);
   const [items, setItems] = useState<Assignment[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [pulse, setPulse] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [course, setCourse] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState("");
 
   const load = () => fetch("/api/assignments").then((r) => r.json()).then((data: Assignment[]) => {
     setItems(data);
@@ -41,10 +46,56 @@ export function AssignmentsPanel() {
     load();
   };
 
+  const addAssignment = async () => {
+    if (!course.trim() || !description.trim() || !dueDate) return;
+    const res = await fetch("/api/assignments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ course: course.trim(), title: description.trim(), dueAt: new Date(dueDate).toISOString() }),
+    });
+    const created = await res.json();
+    setCourse(""); setDescription(""); setDueDate(""); setFormOpen(false);
+    await load();
+    if (created?.id) setSelectedId(created.id);
+  };
+
+  const addForm = (
+    <div className="space-y-2 mb-3 pb-3 border-b border-dashed" style={{ borderColor: theme.border }}>
+      <input
+        value={course} onChange={(e) => setCourse(e.target.value)} placeholder="COURSE (E.G. CSOPESY)"
+        className="w-full text-xs px-2 py-1.5 outline-none border uppercase"
+        style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.ink }}
+      />
+      <input
+        value={description} onChange={(e) => setDescription(e.target.value)} placeholder="DESCRIPTION"
+        className="w-full text-xs px-2 py-1.5 outline-none border"
+        style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.ink }}
+      />
+      <input
+        value={dueDate} onChange={(e) => setDueDate(e.target.value)} type="datetime-local"
+        className="w-full text-xs px-2 py-1.5 outline-none border tabular-nums"
+        style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.ink, colorScheme: mode }}
+      />
+      <div className="flex gap-2">
+        <button onClick={addAssignment} className="text-xs px-3 py-1.5 border" style={{ borderColor: theme.accent, color: theme.accent }}>ADD</button>
+        <button onClick={() => setFormOpen(false)} className="text-xs px-3 py-1.5" style={{ color: theme.inkMuted }}>CANCEL</button>
+      </div>
+    </div>
+  );
+
   if (!selected) {
     return (
       <Panel className="px-6 py-5 mb-8">
-        <p className="text-sm" style={{ color: theme.inkMuted }}>No assignments yet — try Sync Canvas.</p>
+        <SectionHeader
+          icon={<ListChecks size={14} />} label="ASSIGNMENTS"
+          right={
+            <button onClick={() => setFormOpen((v) => !v)} style={{ color: theme.inkMuted }}>
+              <Plus size={14} />
+            </button>
+          }
+        />
+        {formOpen && addForm}
+        <p className="text-sm" style={{ color: theme.inkMuted }}>No assignments yet — try Sync Canvas{formOpen ? "" : ", or add one"}.</p>
       </Panel>
     );
   }
@@ -56,8 +107,16 @@ export function AssignmentsPanel() {
       <Panel className="md:col-span-2 px-4 py-4">
         <SectionHeader
           icon={<ListChecks size={14} />} label="ASSIGNMENTS"
-          right={<span className="text-xs tabular-nums" style={{ color: theme.inkFaint }}>{doneCount}/{items.length}</span>}
+          right={
+            <div className="flex items-center gap-2">
+              <span className="text-xs tabular-nums" style={{ color: theme.inkFaint }}>{doneCount}/{items.length}</span>
+              <button onClick={() => setFormOpen((v) => !v)} style={{ color: theme.inkMuted }}>
+                <Plus size={14} />
+              </button>
+            </div>
+          }
         />
+        {formOpen && addForm}
         {items.length > 0 && doneCount === items.length && (
           <div className="flex items-center gap-1.5 text-xs mb-2" style={{ color: theme.accent }}>
             <Sparkles size={13} /> All caught up
