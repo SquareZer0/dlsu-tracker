@@ -1,19 +1,22 @@
 // Ported from InsightCompanion.reference.tsx — frame engine, blink loop,
 // SETS table, and the overall structure are unchanged. Colors now come
 // from the theme (were hardcoded to dark-mode values, invisible in light
-// mode) and a Send button was added for mobile. Sprite PNGs are single-
-// color dot art (see scripts/make_sprite_frames.py) with a transparent
-// background, so they're rendered as a CSS mask on a theme-colored div
-// instead of a plain <img> — same trick as SongPanel's halftone, but via
-// mask instead of canvas since these are pre-baked frames, not sampled
-// live. That's what makes the sprite recolor with the theme for free.
+// mode) and a Send button was added for mobile.
+//
+// The sprite briefly went through a CSS mask (recolor a fixed-color PNG
+// via the theme) instead of a plain <img> — swapping mask-image on every
+// frame tick (~150ms) turned out to be a flaky repaint in practice
+// (intermittently invisible frames, "glitching out"). Back to a plain
+// <img> (exactly the original, proven-stable technique) with a CSS
+// filter for the light-mode recolor instead — filter only needs to
+// change on a theme toggle, not every frame.
 // Sprite PNGs live at /public/sprites/{idle1,idle2,idle3,blink,talk1,talk2,talk3}.png.
 
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
 import { hexA } from "@/lib/theme";
-import { useTheme } from "@/lib/theme-context";
+import { useTheme, useThemeMode } from "@/lib/theme-context";
 
 const SPRITE = (name: string) => `/sprites/${name}.png`;
 
@@ -44,6 +47,7 @@ const notch = (size = 8) =>
 
 export default function InsightCompanion() {
   const theme = useTheme();
+  const { mode } = useThemeMode();
 
   // Colors, not just the glyph/frame-set choice, so this is computed per
   // render off the live theme — a message keeps whatever color it was
@@ -300,18 +304,18 @@ export default function InsightCompanion() {
         )}
       </div>
 
-      {/* Sprite frames are transparent-background dot art in one fixed
-          color — used as a mask on a theme-colored div so it recolors
-          with light/dark instead of a plain <img> that always renders
-          the baked-in color. */}
-      <div
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={spriteSrc}
+        alt=""
         style={{
-          position: "absolute", left: 14, bottom: 90, width: 220, height: 220,
-          backgroundColor: theme.ink,
-          WebkitMaskImage: `url(${spriteSrc})`, maskImage: `url(${spriteSrc})`,
-          WebkitMaskSize: "contain", maskSize: "contain",
-          WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat",
-          WebkitMaskPosition: "center", maskPosition: "center",
+          position: "absolute", left: 14, bottom: 90, width: 220, imageRendering: "pixelated",
+          // Sprite frames are baked-in cream dots (dark-mode color). In
+          // light mode that's invisible against a light background, so
+          // invert to dark dots instead — approximate, not an exact
+          // theme.ink match, but a static filter (changes only on theme
+          // toggle) is far more robust than trying to recolor per-frame.
+          filter: mode === "light" ? "invert(1)" : "none",
         }}
       />
 
