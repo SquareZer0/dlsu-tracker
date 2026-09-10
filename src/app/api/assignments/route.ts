@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAssignment } from "@/lib/assignments";
 
 export const dynamic = "force-dynamic";
 
@@ -19,4 +20,14 @@ export async function PATCH(req: NextRequest) {
     data: { done, doneAt: done ? new Date() : null },
   });
   return NextResponse.json(updated);
+}
+
+export async function POST(req: NextRequest) {
+  const { course, title, dueAt } = await req.json();
+  try {
+    const assignment = await createAssignment({ course, title, dueAt });
+    return NextResponse.json(assignment);
+  } catch (e: any) {
+    return NextResponse.json({ error: String(e?.message ?? e) }, { status: 400 });
+  }
 }

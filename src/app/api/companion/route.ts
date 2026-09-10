@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { AUTH_COOKIE, isAuthedCookie } from "@/lib/auth";
 import { getUserSnapshot, formatSnapshot } from "@/lib/snapshot";
 import { createCalendarEvent } from "@/lib/googleCalendar";
+import { createAssignment } from "@/lib/assignments";
 
 export const dynamic = "force-dynamic";
 
@@ -26,22 +27,28 @@ const SYSTEM_PROMPT =
   'Before your reply, output exactly one line containing only a JSON object tagging its topic: {"topic":"workload"} ' +
   'for assignments/exams/deadlines, {"topic":"budget"} for money/spending, or {"topic":"schedule"} for classes, ' +
   "calendar, or anything else. " +
-  'If — and only if — the user is clearly asking you to add/schedule/create something on their calendar, also ' +
-  'include an "action" field on that same JSON object: {"topic":"schedule","action":{"type":"create_event",' +
-  '"title":"...","start":"2026-09-10T15:00:00+08:00","end":"2026-09-10T16:00:00+08:00","location":"..."}}. ' +
+  "If — and only if — the user is clearly asking you to DO something (not just answer a question), also include " +
+  'an "action" field on that same JSON object — two kinds:\n' +
+  '  - Calendar event (a meeting, class, activity — something with a start and end time): {"topic":"schedule",' +
+  '"action":{"type":"create_event","title":"...","start":"2026-09-10T15:00:00+08:00","end":"2026-09-10T16:00:00+08:00",' +
+  '"location":"..."}}. If no end time is given, make it 1 hour long. location is optional — omit it if not mentioned.\n' +
+  '  - Assignment (a task/deliverable to track, not a calendar slot — "add an assignment", "remind me to submit X"): ' +
+  '{"topic":"workload","action":{"type":"create_assignment","course":"...","title":"...","dueAt":"2026-09-12T23:59:00+08:00"}}. ' +
+  "If no time is given, default dueAt to 11:59 PM that day.\n" +
   "Resolve relative dates/times (\"tomorrow at 3\", \"next Friday\") against NOW in the SNAPSHOT below, always as " +
-  "ISO 8601 with the +08:00 offset. If no end time is given, make the event 1 hour long. location is optional — " +
-  'omit it entirely if not mentioned. Never include "action" for anything that isn\'t explicitly a scheduling request. ' +
-  "Then a newline, then your reply — written as if the event is already on the calendar (it will be by the time " +
-  "you're read). Nothing else before the JSON line.";
+  'ISO 8601 with the +08:00 offset. Never include "action" for anything that isn\'t explicitly asking you to add/schedule/create ' +
+  "something. Then a newline, then your reply — written as if it's already done (it will be by the time you're read). " +
+  "Nothing else before the JSON line.";
 
 type CreateEventAction = { type: "create_event"; title: string; start: string; end: string; location?: string };
+type CreateAssignmentAction = { type: "create_assignment"; course: string; title: string; dueAt: string };
+type Action = CreateEventAction | CreateAssignmentAction;
 
 // Pulls the leading {"topic":..., "action":...} line back out of a tagged
 // reply. Used server-side for the (non-streaming) digest and to detect
-// create_event requests; the streaming query reply is tagged the same way
-// but its topic is parsed client-side too, as tokens arrive.
-function parseTag(raw: string): { topic: Topic; action: CreateEventAction | null; body: string } {
+// create_event/create_assignment requests; the streaming query reply is
+// tagged the same way but its topic is parsed client-side too, as tokens arrive.
+function parseTag(raw: string): { topic: Topic; action: Action | null; body: string } {
   const nl = raw.indexOf("\n");
   const tagLine = nl === -1 ? raw : raw.slice(0, nl);
   const body = nl === -1 ? "" : raw.slice(nl + 1).trim();
@@ -49,17 +56,25 @@ function parseTag(raw: string): { topic: Topic; action: CreateEventAction | null
   const topicMatch = tagLine.match(/"topic"\s*:\s*"(\w+)"/);
   const topic = (topicMatch && (TOPICS as readonly string[]).includes(topicMatch[1]) ? topicMatch[1] : "schedule") as Topic;
 
-  let action: CreateEventAction | null = null;
+  let action: Action | null = null;
   try {
     const parsed = JSON.parse(tagLine);
-    if (parsed?.action?.type === "create_event" && parsed.action.title && parsed.action.start && parsed.action.end) {
-      action = parsed.action;
+    const a = parsed?.action;
+    if (a?.type === "create_event" && a.title && a.start && a.end) {
+      action = a;
+    } else if (a?.type === "create_assignment" && a.course && a.title && a.dueAt) {
+      action = a;
     }
   } catch {
     // tagLine wasn't (yet, or ever) valid standalone JSON — no action, that's fine
   }
 
   return { topic, action, body };
+}
+
+async function runAction(action: Action) {
+  if (action.type === "create_event") return createCalendarEvent(action);
+  return createAssignment(action);
 }
 
 // GET returns the cached daily digest for the sidebar to show on load —
@@ -122,10 +137,10 @@ export async function POST(req: NextRequest) {
 
   // Raw text (topic-tag line included) is streamed through as-is — the
   // client parses the tag out of the first line as tokens arrive. The one
-  // exception is a create_event reply: we can't let the model's "done!"
-  // text reach the client until the calendar write has actually been
-  // attempted, so that specific case is buffered in full instead of
-  // streamed token-by-token.
+  // exception is an action reply (create_event/create_assignment): we
+  // can't let the model's "done!" text reach the client until the write
+  // has actually been attempted, so that specific case is buffered in
+  // full instead of streamed token-by-token.
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -145,7 +160,7 @@ export async function POST(req: NextRequest) {
 
       let raw = "";
       let tagSeen = false;
-      let action: CreateEventAction | null = null;
+      let action: Action | null = null;
       let live = false; // once true, chunks are forwarded as they arrive
 
       messageStream.on("text", (text) => {
@@ -177,11 +192,12 @@ export async function POST(req: NextRequest) {
           return;
         }
         try {
-          await createCalendarEvent(action);
+          await runAction(action);
           controller.enqueue(encoder.encode(raw)); // the model's own confirmation text
         } catch {
           const { topic } = parseTag(raw);
-          controller.enqueue(encoder.encode(`{"topic":"${topic}"}\ncouldn't reach your calendar just now — mind trying again in a bit?`));
+          const where = action.type === "create_event" ? "your calendar" : "the assignments list";
+          controller.enqueue(encoder.encode(`{"topic":"${topic}"}\ncouldn't reach ${where} just now — mind trying again in a bit?`));
         }
         close();
       });
