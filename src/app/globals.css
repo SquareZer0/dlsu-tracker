@@ -4,14 +4,23 @@
 
 body {
   background-color: #181310;
-  background-image: radial-gradient(rgba(201, 190, 150, 0.05) 1px, transparent 1.4px);
-  background-size: 20px 20px;
+  background-image:
+    radial-gradient(rgba(201, 190, 150, 0.05) 1px, transparent 1.4px),
+    url("/bg-frame-dark.svg");
+  background-size: 20px 20px, 100% 100%;
+  background-repeat: repeat, no-repeat;
+  background-attachment: fixed, fixed;
   color: #C9BE96;
 }
 
 html[data-theme="light"] body {
   background-color: #DDD6BA;
-  background-image: radial-gradient(rgba(43, 40, 32, 0.06) 1px, transparent 1.4px);
+  background-image:
+    radial-gradient(rgba(43, 40, 32, 0.06) 1px, transparent 1.4px),
+    url("/bg-frame-light.svg");
+  background-size: 20px 20px, 100% 100%;
+  background-repeat: repeat, no-repeat;
+  background-attachment: fixed, fixed;
   color: #2B2820;
 }
 
