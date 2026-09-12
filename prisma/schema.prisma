@@ -69,16 +69,25 @@ model CompanionDigest {
   createdAt DateTime @default(now())
 }
 
-// A row's existence means that exercise is checked off for that
-// day/week — nothing marks "unchecked", unchecking just deletes the
-// row. weekStart resets the checklist every Monday (see
-// lib/theme.ts's currentWeekStart) without needing a cron job.
-model WorkoutCheck {
+// Singleton tracking which workout day (A/B) is active and, once every
+// exercise in it is checked off, a cooldown window — the app auto-
+// alternates to the other day once cooldownUntil passes (see api/workout).
+model WorkoutState {
+  id                Int       @id @default(1)
+  activeDay         String    @default("A")
+  cooldownStartedAt DateTime?
+  cooldownUntil     DateTime?
+}
+
+// A row's existence means that exercise is checked off for the current
+// session of that day — nothing marks "unchecked", unchecking just
+// deletes the row. Rows are cleared when a day's cooldown expires and it
+// becomes active again, giving it a fresh start.
+model WorkoutSessionCheck {
   id        Int      @id @default(autoincrement())
   day       String
   exercise  String
-  weekStart String
   createdAt DateTime @default(now())
 
-  @@unique([day, exercise, weekStart])
+  @@unique([day, exercise])
 }
