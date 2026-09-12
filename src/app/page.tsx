@@ -23,6 +23,7 @@ const links = [
   { href: "/exams", label: "Exams" },
   { href: "/finance", label: "Finance" },
   { href: "/schedule", label: "Schedule" },
+  { href: "/workout", label: "Workout" },
 ];
 
 const greetingIcons: Record<Period, typeof Sun> = {
@@ -97,6 +98,9 @@ export default function HomePage() {
                 <ExamsPanel />
                 <FinancePanel />
               </div>
+              <div className="mb-8">
+                <WorkoutPanel />
+              </div>
               <ScheduleTimeline />
             </>
           ) : (
@@ -109,10 +113,6 @@ export default function HomePage() {
               ))}
             </div>
           )}
-
-          <div className="mb-8">
-            <WorkoutPanel />
-          </div>
         </div>
 
         {/* Right Side Rail Column (Mini Calendar + Today & Tomorrow Panels) */}
