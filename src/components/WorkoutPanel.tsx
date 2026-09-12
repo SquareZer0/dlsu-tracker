@@ -4,7 +4,7 @@ import { Dumbbell, Check } from "lucide-react";
 import { Panel } from "./Panel";
 import { SectionHeader } from "./SectionHeader";
 import { useTheme } from "@/lib/theme-context";
-import { ROUTINE, type WorkoutDay } from "@/lib/workout";
+import { ROUTINE, ROTATION_NOTE, PROGRESSION_NOTE, type WorkoutDay } from "@/lib/workout";
 
 const DAYS: WorkoutDay[] = ["A", "B", "C"];
 
@@ -44,6 +44,10 @@ export function WorkoutPanel() {
         icon={<Dumbbell size={14} />} label="WORKOUT"
         right={<span className="text-xs tabular-nums" style={{ color: theme.inkFaint }}>{doneCount}/{routine.exercises.length}</span>}
       />
+
+      <p className="text-[10px] tracking-wide mb-3" style={{ color: theme.inkFaint }}>
+        {ROTATION_NOTE} · {PROGRESSION_NOTE}
+      </p>
 
       <div className="flex gap-2 mb-3">
         {DAYS.map((d) => (
