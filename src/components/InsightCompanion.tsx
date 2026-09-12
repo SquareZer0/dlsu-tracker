@@ -31,9 +31,10 @@ const SETS = {
 type SetKey = keyof typeof SETS;
 type Topic = "workload" | "budget" | "schedule";
 
-// Temporary, session-only scrollback — the last few exchanges (yours and
-// the companion's unprompted asides) stay visible above the sprite
-// instead of a single bubble that fades a few seconds after typing.
+// Temporary, session-only scrollback — the last few replies to *your*
+// questions stay visible above the sprite instead of fading a few
+// seconds after typing. Unprompted asides (you === "") never graduate
+// here — they just vanish once their linger time is up.
 type Exchange = { id: number; you: string; text: string; border: string; shadow: string; done: boolean };
 const MAX_HISTORY = 6;
 
@@ -181,7 +182,11 @@ export default function InsightCompanion() {
     await sleep(2500); // lingers as the single prominent bubble
 
     setActiveMsg((m) => (m && m.id === id ? null : m)); // graduate — unless a newer reply already took over
-    setHistory((h) => [...h, finished].slice(-MAX_HISTORY));
+    if (you) {
+      // only replies to something you actually asked stick around —
+      // unprompted asides just disappear once their linger time is up.
+      setHistory((h) => [...h, finished].slice(-MAX_HISTORY));
+    }
 
     await sleep(400);
     await flashGlyph(t.glyph, t.accent, 700);
