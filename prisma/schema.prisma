@@ -68,3 +68,17 @@ model CompanionDigest {
   topic     String   @default("schedule")
   createdAt DateTime @default(now())
 }
+
+// A row's existence means that exercise is checked off for that
+// day/week — nothing marks "unchecked", unchecking just deletes the
+// row. weekStart resets the checklist every Monday (see
+// lib/theme.ts's currentWeekStart) without needing a cron job.
+model WorkoutCheck {
+  id        Int      @id @default(autoincrement())
+  day       String
+  exercise  String
+  weekStart String
+  createdAt DateTime @default(now())
+
+  @@unique([day, exercise, weekStart])
+}

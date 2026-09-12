@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ListChecks, GraduationCap, Wallet, CalendarClock } from "lucide-react";
+import { Home, ListChecks, GraduationCap, Wallet, CalendarClock, Dumbbell } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
 const tabs = [
@@ -10,6 +10,7 @@ const tabs = [
   { href: "/exams", label: "EXAMS", icon: GraduationCap },
   { href: "/finance", label: "MONEY", icon: Wallet },
   { href: "/schedule", label: "SCHED", icon: CalendarClock },
+  { href: "/workout", label: "GYM", icon: Dumbbell },
 ];
 
 export function BottomTabBar() {

@@ -16,7 +16,7 @@ export function TopBar({ showBreadcrumb = true }: { showBreadcrumb?: boolean }) 
     >
       {showBreadcrumb ? (
         <div className="flex flex-wrap gap-x-4 gap-y-1" style={{ color: theme.inkMuted }}>
-          <span>/ Assignments:</span><span>/ Exams:</span><span>/ Schedule:</span><span>/ Finance:</span>
+          <span>/ Assignments:</span><span>/ Exams:</span><span>/ Schedule:</span><span>/ Finance:</span><span>/ Workout:</span>
         </div>
       ) : <div />}
       <div className="flex items-center gap-3">

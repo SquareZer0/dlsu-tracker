@@ -71,3 +71,15 @@ export const peso = (n: number) =>
 
 export const clock = (d: Date) =>
   d.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" }).toUpperCase();
+
+// Monday of the current week, as a YYYY-MM-DD key. Used to scope
+// weekly-resetting state (e.g. the workout checklist) — once Monday
+// arrives this key changes, so anything stored under last week's key
+// simply stops matching instead of needing an explicit reset job.
+export function currentWeekStart(now: Date) {
+  const d = new Date(now);
+  const day = d.getDay(); // 0 = Sun, 1 = Mon, ... 6 = Sat
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  d.setHours(0, 0, 0, 0);
+  return d.toLocaleDateString("en-CA"); // YYYY-MM-DD
+}

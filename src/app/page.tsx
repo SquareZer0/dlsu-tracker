@@ -11,6 +11,7 @@ import { SongPanel } from "@/components/SongPanel";
 import { AssignmentsPanel } from "@/components/AssignmentsPanel";
 import { ExamsPanel } from "@/components/ExamsPanel";
 import { FinancePanel } from "@/components/FinancePanel";
+import { WorkoutPanel } from "@/components/WorkoutPanel";
 import { ScheduleTimeline } from "@/components/ScheduleTimeline";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { MiniCalendarPanel } from "@/components/MiniCalendarPanel";
@@ -22,6 +23,7 @@ const links = [
   { href: "/exams", label: "Exams" },
   { href: "/finance", label: "Finance" },
   { href: "/schedule", label: "Schedule" },
+  { href: "/workout", label: "Workout" },
 ];
 
 const greetingIcons: Record<Period, typeof Sun> = {
@@ -95,6 +97,9 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <ExamsPanel />
                 <FinancePanel />
+              </div>
+              <div className="mb-8">
+                <WorkoutPanel />
               </div>
               <ScheduleTimeline />
             </>
