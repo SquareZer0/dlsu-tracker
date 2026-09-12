@@ -76,6 +76,7 @@ const statements = [
   `CREATE TABLE IF NOT EXISTS "WorkoutState" (
     "id" INTEGER NOT NULL PRIMARY KEY,
     "activeDay" TEXT NOT NULL DEFAULT 'A',
+    "cooldownStartedAt" DATETIME,
     "cooldownUntil" DATETIME
   )`,
   `CREATE TABLE IF NOT EXISTS "WorkoutSessionCheck" (

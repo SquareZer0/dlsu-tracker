@@ -5,11 +5,12 @@ import { Panel } from "./Panel";
 import { SectionHeader } from "./SectionHeader";
 import { useTheme } from "@/lib/theme-context";
 import { hexA } from "@/lib/theme";
-import { ROUTINE, ROTATION_NOTE, PROGRESSION_NOTE, COOLDOWN_MS, type WorkoutDay } from "@/lib/workout";
+import { ROUTINE, ROTATION_NOTE, PROGRESSION_NOTE, type WorkoutDay } from "@/lib/workout";
 
 type WorkoutData = {
   activeDay: WorkoutDay;
   inCooldown: boolean;
+  cooldownStartedAt: string | null;
   cooldownUntil: string | null;
   checked: string[];
 };
@@ -80,7 +81,10 @@ export function WorkoutPanel() {
     setData(updated);
   };
 
-  const fraction = inCooldown ? Math.min(1, Math.max(0, remaining / COOLDOWN_MS)) : 0;
+  const totalMs = data.cooldownStartedAt && data.cooldownUntil
+    ? new Date(data.cooldownUntil).getTime() - new Date(data.cooldownStartedAt).getTime()
+    : 0;
+  const fraction = inCooldown && totalMs > 0 ? Math.min(1, Math.max(0, remaining / totalMs)) : 0;
 
   return (
     <Panel className="px-4 py-4 relative overflow-hidden">

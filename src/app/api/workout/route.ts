@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ROUTINE, COOLDOWN_MS, type WorkoutDay } from "@/lib/workout";
+import { ROUTINE, nextWorkoutAvailableAt, type WorkoutDay } from "@/lib/workout";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ async function resolveState() {
     await prisma.workoutSessionCheck.deleteMany({ where: { day: nextDay } });
     state = await prisma.workoutState.update({
       where: { id: 1 },
-      data: { activeDay: nextDay, cooldownUntil: null },
+      data: { activeDay: nextDay, cooldownStartedAt: null, cooldownUntil: null },
     });
   }
   return state;
@@ -32,6 +32,7 @@ export async function GET() {
   return NextResponse.json({
     activeDay: day,
     inCooldown,
+    cooldownStartedAt: state.cooldownStartedAt,
     cooldownUntil: state.cooldownUntil,
     checked: checks.map((c) => c.exercise),
   });
@@ -61,15 +62,18 @@ export async function POST(req: NextRequest) {
   const checks = await prisma.workoutSessionCheck.findMany({ where: { day } });
   const allDone = ROUTINE[day].exercises.every((ex) => checks.some((c) => c.exercise === ex.slug));
 
+  let cooldownStartedAt: Date | null = null;
   let cooldownUntil: Date | null = null;
   if (allDone) {
-    cooldownUntil = new Date(Date.now() + COOLDOWN_MS);
-    await prisma.workoutState.update({ where: { id: 1 }, data: { cooldownUntil } });
+    cooldownStartedAt = new Date();
+    cooldownUntil = nextWorkoutAvailableAt(cooldownStartedAt);
+    await prisma.workoutState.update({ where: { id: 1 }, data: { cooldownStartedAt, cooldownUntil } });
   }
 
   return NextResponse.json({
     activeDay: day,
     inCooldown: allDone,
+    cooldownStartedAt,
     cooldownUntil,
     checked: checks.map((c) => c.exercise),
   });

@@ -70,12 +70,13 @@ model CompanionDigest {
 }
 
 // Singleton tracking which workout day (A/B) is active and, once every
-// exercise in it is checked off, a cooldownUntil timestamp — the app
-// auto-alternates to the other day once that passes (see api/workout).
+// exercise in it is checked off, a cooldown window — the app auto-
+// alternates to the other day once cooldownUntil passes (see api/workout).
 model WorkoutState {
-  id            Int       @id @default(1)
-  activeDay     String    @default("A")
-  cooldownUntil DateTime?
+  id                Int       @id @default(1)
+  activeDay         String    @default("A")
+  cooldownStartedAt DateTime?
+  cooldownUntil     DateTime?
 }
 
 // A row's existence means that exercise is checked off for the current

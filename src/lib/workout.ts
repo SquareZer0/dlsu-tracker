@@ -8,10 +8,23 @@ const exercise = (name: string, detail: string): Exercise => ({
   detail,
 });
 
-// Auto-alternating: finishing every exercise in a day starts a 24h cooldown,
-// then the other day becomes active. Progression: hit the top of the rep
-// range on all sets -> add weight next session.
-export const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+// Auto-alternating: finishing every exercise in a day starts a cooldown that
+// lasts the rest of that calendar day plus the next full day — the other day
+// becomes active at the start (00:00 Manila time) of the day after that, so
+// a fixed one full rest day regardless of what time the workout finished
+// (e.g. done Mon 6pm or Mon 6am, either way it's available again at the
+// start of Wed). Progression: hit the top of the rep range on all sets ->
+// add weight next session.
+function toManilaDateKey(date: Date): string {
+  return date.toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+}
+
+export function nextWorkoutAvailableAt(completedAt: Date): Date {
+  const todayKey = toManilaDateKey(completedAt);
+  const target = new Date(`${todayKey}T00:00:00+08:00`);
+  target.setUTCDate(target.getUTCDate() + 2);
+  return target;
+}
 
 export const ROTATION_NOTE = "ROTATION: A ⇄ B, one day on, one day off";
 export const PROGRESSION_NOTE = "PROGRESSION: top of rep range on all sets → add weight next session";
