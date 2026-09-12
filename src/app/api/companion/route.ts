@@ -98,26 +98,32 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    const snapshot = await getUserSnapshot();
-    const message = await anthropic.messages.create({
-      model: DIGEST_MODEL,
-      max_tokens: 200,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `SNAPSHOT:\n${formatSnapshot(snapshot)}\n\nGive one short proactive observation — the single most urgent or notable thing (a deadline, exam, or spending pace). No preamble.`,
-        },
-      ],
-    });
-    const raw = message.content.find((b) => b.type === "text")?.text ?? "";
-    const { topic, body: text } = parseTag(raw); // digest is non-interactive — any "action" is ignored
-    const digest = await prisma.companionDigest.upsert({
-      where: { id: 1 },
-      update: { text, topic },
-      create: { id: 1, text, topic },
-    });
-    return Response.json({ text: digest.text, topic: digest.topic, createdAt: digest.createdAt });
+    try {
+      const snapshot = await getUserSnapshot();
+      const message = await anthropic.messages.create({
+        model: DIGEST_MODEL,
+        max_tokens: 200,
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: `SNAPSHOT:\n${formatSnapshot(snapshot)}\n\nGive one short proactive observation — the single most urgent or notable thing (a deadline, exam, or spending pace). No preamble.`,
+          },
+        ],
+      });
+      const raw = message.content.find((b) => b.type === "text")?.text ?? "";
+      const { topic, body: text } = parseTag(raw); // digest is non-interactive — any "action" is ignored
+      const digest = await prisma.companionDigest.upsert({
+        where: { id: 1 },
+        update: { text, topic },
+        create: { id: 1, text, topic },
+      });
+      return Response.json({ text: digest.text, topic: digest.topic, createdAt: digest.createdAt });
+    } catch (err) {
+      console.error("Companion digest failed:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      return Response.json({ error: message }, { status: 500 });
+    }
   }
 
   if (!(await isAuthedCookie(req.cookies.get(AUTH_COOKIE)?.value))) {

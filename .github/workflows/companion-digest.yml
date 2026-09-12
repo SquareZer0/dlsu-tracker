@@ -13,7 +13,12 @@ jobs:
     steps:
       - name: Refresh the companion digest
         run: |
-          curl -sf -X POST "${{ secrets.APP_URL }}/api/companion" \
+          status=$(curl -s -o response.txt -w "%{http_code}" -X POST "${{ secrets.APP_URL }}/api/companion" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            -d '{"mode":"digest"}'
+            -d '{"mode":"digest"}')
+          cat response.txt
+          if [ "$status" -ge 400 ]; then
+            echo "HTTP $status"
+            exit 1
+          fi
