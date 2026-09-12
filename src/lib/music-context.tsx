@@ -32,7 +32,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MusicContext.Provider value={{ playing, toggle }}>
-      <audio ref={audioRef} src="/audio/background.mp3" loop />
+      <audio ref={audioRef} src="/audio/background.m4a" loop />
       {children}
     </MusicContext.Provider>
   );
