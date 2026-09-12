@@ -5,6 +5,7 @@ import { clock } from "@/lib/theme";
 import { useTheme, useThemeMode } from "@/lib/theme-context";
 import { useMusic } from "@/lib/music-context";
 import { SyncButton } from "./SyncButton";
+import { VolumeControl } from "./VolumeControl";
 
 export function TopBar({ showBreadcrumb = true }: { showBreadcrumb?: boolean }) {
   const now = useNow();
@@ -38,6 +39,7 @@ export function TopBar({ showBreadcrumb = true }: { showBreadcrumb?: boolean }) 
         >
           {playing ? <Pause size={12} /> : <Play size={12} />}
         </button>
+        <VolumeControl />
         <SyncButton />
         <span className="tabular-nums" style={{ color: theme.ink }}>{clock(now)}</span>
       </div>
