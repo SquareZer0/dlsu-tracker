@@ -11,6 +11,7 @@ import { SongPanel } from "@/components/SongPanel";
 import { AssignmentsPanel } from "@/components/AssignmentsPanel";
 import { ExamsPanel } from "@/components/ExamsPanel";
 import { FinancePanel } from "@/components/FinancePanel";
+import { WorkoutPanel } from "@/components/WorkoutPanel";
 import { ScheduleTimeline } from "@/components/ScheduleTimeline";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { MiniCalendarPanel } from "@/components/MiniCalendarPanel";
@@ -108,6 +109,10 @@ export default function HomePage() {
               ))}
             </div>
           )}
+
+          <div className="mb-8">
+            <WorkoutPanel />
+          </div>
         </div>
 
         {/* Right Side Rail Column (Mini Calendar + Today & Tomorrow Panels) */}
