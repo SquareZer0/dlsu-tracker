@@ -73,6 +73,18 @@ const statements = [
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "WorkoutCheck_day_exercise_weekStart_key" ON "WorkoutCheck"("day", "exercise", "weekStart")`,
+  `CREATE TABLE IF NOT EXISTS "WorkoutState" (
+    "id" INTEGER NOT NULL PRIMARY KEY,
+    "activeDay" TEXT NOT NULL DEFAULT 'A',
+    "cooldownUntil" DATETIME
+  )`,
+  `CREATE TABLE IF NOT EXISTS "WorkoutSessionCheck" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "day" TEXT NOT NULL,
+    "exercise" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "WorkoutSessionCheck_day_exercise_key" ON "WorkoutSessionCheck"("day", "exercise")`,
 ];
 
 async function main() {
