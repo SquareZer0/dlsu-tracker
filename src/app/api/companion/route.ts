@@ -95,14 +95,7 @@ export async function POST(req: NextRequest) {
     // Fired once a day by GitHub Actions (see .github/workflows/companion-digest.yml).
     const auth = req.headers.get("authorization");
     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-      // Temporary diagnostic — lengths/booleans only, never the secret itself.
-      return Response.json({
-        error: "unauthorized",
-        hasSecretEnv: process.env.CRON_SECRET != null,
-        secretEnvLen: process.env.CRON_SECRET?.length ?? 0,
-        authHeaderPresent: auth != null,
-        authHeaderLen: auth?.length ?? 0,
-      }, { status: 401 });
+      return Response.json({ error: "unauthorized" }, { status: 401 });
     }
 
     try {
