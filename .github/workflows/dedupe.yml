@@ -13,5 +13,10 @@ jobs:
     steps:
       - name: Hit the dedupe endpoint
         run: |
-          curl -sf -X POST "${{ secrets.APP_URL }}/api/cron/dedupe-assignments" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          status=$(curl -s -o response.txt -w "%{http_code}" -X POST "${{ secrets.APP_URL }}/api/cron/dedupe-assignments" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          cat response.txt
+          if [ "$status" -ge 400 ]; then
+            echo "HTTP $status"
+            exit 1
+          fi

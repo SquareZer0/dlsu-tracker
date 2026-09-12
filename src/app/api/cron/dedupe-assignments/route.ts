@@ -60,19 +60,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const assignments = await prisma.assignment.findMany({ orderBy: { id: "asc" } });
-  const deletedAssignments = await dedupe(
-    assignments,
-    (id, canvasUrl) => prisma.assignment.update({ where: { id }, data: { canvasUrl } }),
-    (ids) => prisma.assignment.deleteMany({ where: { id: { in: ids } } }),
-  );
+  try {
+    const assignments = await prisma.assignment.findMany({ orderBy: { id: "asc" } });
+    const deletedAssignments = await dedupe(
+      assignments,
+      (id, canvasUrl) => prisma.assignment.update({ where: { id }, data: { canvasUrl } }),
+      (ids) => prisma.assignment.deleteMany({ where: { id: { in: ids } } }),
+    );
 
-  const exams = await prisma.exam.findMany({ orderBy: { id: "asc" } });
-  const deletedExams = await dedupe(
-    exams,
-    (id, canvasUrl) => prisma.exam.update({ where: { id }, data: { canvasUrl } }),
-    (ids) => prisma.exam.deleteMany({ where: { id: { in: ids } } }),
-  );
+    const exams = await prisma.exam.findMany({ orderBy: { id: "asc" } });
+    const deletedExams = await dedupe(
+      exams,
+      (id, canvasUrl) => prisma.exam.update({ where: { id }, data: { canvasUrl } }),
+      (ids) => prisma.exam.deleteMany({ where: { id: { in: ids } } }),
+    );
 
-  return NextResponse.json({ deletedAssignments, deletedExams });
+    return NextResponse.json({ deletedAssignments, deletedExams });
+  } catch (err) {
+    console.error("Dedupe failed:", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
