@@ -30,6 +30,10 @@ export function WorkoutPanel() {
   const theme = useTheme();
   const [data, setData] = useState<WorkoutData | null>(null);
   const [remaining, setRemaining] = useState(0);
+  // Skipping throws away a rest day, so the first tap only arms the button;
+  // a second tap within a few seconds actually skips.
+  const [skipArmed, setSkipArmed] = useState(false);
+  const [skipping, setSkipping] = useState(false);
 
   const load = () => fetch("/api/workout").then((r) => r.json()).then(setData);
 
@@ -49,6 +53,12 @@ export function WorkoutPanel() {
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [data?.inCooldown, data?.cooldownUntil]);
+
+  useEffect(() => {
+    if (!skipArmed) return;
+    const t = setTimeout(() => setSkipArmed(false), 4000);
+    return () => clearTimeout(t);
+  }, [skipArmed]);
 
   if (!data) {
     return (
@@ -79,6 +89,22 @@ export function WorkoutPanel() {
     });
     const updated = await res.json();
     setData(updated);
+  };
+
+  const skipCooldown = async () => {
+    if (!skipArmed) { setSkipArmed(true); return; }
+    setSkipArmed(false);
+    setSkipping(true);
+    try {
+      const res = await fetch("/api/workout", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skipCooldown: true }),
+      });
+      if (res.ok) setData(await res.json());
+    } finally {
+      setSkipping(false);
+    }
   };
 
   const totalMs = data.cooldownStartedAt && data.cooldownUntil
@@ -160,6 +186,19 @@ export function WorkoutPanel() {
           <p className="text-[10px] tracking-wide" style={{ color: theme.inkFaint }}>
             NEXT: {ROUTINE[activeDay === "A" ? "B" : "A"].label.toUpperCase()}
           </p>
+          <button
+            onClick={skipCooldown}
+            disabled={skipping}
+            className="mt-1 text-xs tracking-widest px-3 py-1.5 border"
+            style={{
+              borderColor: skipArmed ? theme.accent : theme.border,
+              color: skipArmed ? theme.accent : theme.inkMuted,
+              backgroundColor: hexA(theme.bg, 0.6),
+              opacity: skipping ? 0.5 : 1,
+            }}
+          >
+            {skipping ? "SKIPPING…" : skipArmed ? "TAP AGAIN TO SKIP" : "SKIP COOLDOWN"}
+          </button>
         </div>
       )}
     </Panel>

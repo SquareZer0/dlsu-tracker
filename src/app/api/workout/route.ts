@@ -24,18 +24,36 @@ async function resolveState() {
   return state;
 }
 
-export async function GET() {
+async function currentPayload() {
   const state = await resolveState();
   const inCooldown = !!state.cooldownUntil;
   const day = state.activeDay as WorkoutDay;
   const checks = await prisma.workoutSessionCheck.findMany({ where: { day } });
-  return NextResponse.json({
+  return {
     activeDay: day,
     inCooldown,
     cooldownStartedAt: state.cooldownStartedAt,
     cooldownUntil: state.cooldownUntil,
     checked: checks.map((c) => c.exercise),
+  };
+}
+
+export async function GET() {
+  return NextResponse.json(await currentPayload());
+}
+
+// "Skip" on the cooldown overlay: ending the cooldown now lets resolveState()
+// do the usual flip to the other day, same as if the timer had run out.
+export async function PATCH(req: NextRequest) {
+  const { skipCooldown } = await req.json();
+  if (skipCooldown !== true) {
+    return NextResponse.json({ error: "skipCooldown required" }, { status: 400 });
+  }
+  await prisma.workoutState.updateMany({
+    where: { id: 1, cooldownUntil: { not: null } },
+    data: { cooldownUntil: new Date() },
   });
+  return NextResponse.json(await currentPayload());
 }
 
 export async function POST(req: NextRequest) {
