@@ -5,12 +5,12 @@ import { useNow } from "@/lib/hooks";
 import { Panel } from "./Panel";
 import { SectionHeader } from "./SectionHeader";
 import { StatRow } from "./StatRow";
-import { hexA, formatDue, isUrgent, clock } from "@/lib/theme";
+import { hexA, formatDue, isUrgent, clock, TZ } from "@/lib/theme";
 import { useTheme, useThemeMode } from "@/lib/theme-context";
 import type { Assignment } from "@/lib/types";
 
 function dueDateTime(d: Date) {
-  return `${d.toLocaleDateString("en-PH", { month: "short", day: "numeric" }).toUpperCase()} ${clock(d)}`;
+  return `${d.toLocaleDateString("en-PH", { month: "short", day: "numeric", timeZone: TZ }).toUpperCase()} ${clock(d)}`;
 }
 
 export function AssignmentsPanel() {
