@@ -41,6 +41,19 @@ function extractCanvasUrl(ev: any): string | null {
   return match ? match[0] : null;
 }
 
+// Canvas exports anything due at 11:59 PM as an all-day VALUE=DATE event
+// rather than a timed one. node-ical turns those into midnight in the
+// runtime's zone — on Vercel that's 00:00 UTC, which shows up as 8:00 AM
+// Manila. Re-anchor them to 11:59 PM Manila on the same calendar date.
+function dueDate(ev: any): Date {
+  const start: Date = ev.start;
+  if (!ev.start.dateOnly) return start;
+  const y = start.getFullYear();
+  const m = String(start.getMonth() + 1).padStart(2, "0");
+  const d = String(start.getDate()).padStart(2, "0");
+  return new Date(`${y}-${m}-${d}T23:59:00+08:00`);
+}
+
 export async function syncCanvas() {
   const url = process.env.CANVAS_ICS_URL;
   if (!url) throw new Error("CANVAS_ICS_URL not set");
@@ -79,19 +92,20 @@ export async function syncCanvas() {
     seenNormKeys.add(normKey);
 
     const canvasUrl = extractCanvasUrl(ev);
+    const dueAt = dueDate(ev);
 
     if (isExam) {
       await prisma.exam.upsert({
         where: { externalId: ev.uid },
-        update: { title, course, dueAt: ev.start, canvasUrl },
-        create: { externalId: ev.uid, title, course, dueAt: ev.start, canvasUrl },
+        update: { title, course, dueAt, canvasUrl },
+        create: { externalId: ev.uid, title, course, dueAt, canvasUrl },
       });
       exams++;
     } else {
       await prisma.assignment.upsert({
         where: { externalId: ev.uid },
-        update: { title, course, dueAt: ev.start, canvasUrl },
-        create: { externalId: ev.uid, title, course, dueAt: ev.start, canvasUrl },
+        update: { title, course, dueAt, canvasUrl },
+        create: { externalId: ev.uid, title, course, dueAt, canvasUrl },
       });
       assignments++;
     }

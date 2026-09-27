@@ -50,10 +50,22 @@ export function hexA(hex: string, a: number) {
 export const notch = (size = 14) =>
   `polygon(0 0, calc(100% - ${size}px) 0, 100% ${size}px, 100% 100%, ${size}px 100%, 0 calc(100% - ${size}px))`;
 
+// Everything is pinned to Manila time rather than the runtime's local zone:
+// the cron routes run on Vercel in UTC, where "midnight" and "today" land
+// 8 hours off from what the student actually sees.
+export const TZ = "Asia/Manila";
+const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000; // PH has no DST
+
+// Manila wall-clock fields for an instant, regardless of the runtime's zone.
+export function manilaParts(d: Date) {
+  const m = new Date(d.getTime() + MANILA_OFFSET_MS);
+  return { weekday: m.getUTCDay(), minutes: m.getUTCHours() * 60 + m.getUTCMinutes() + m.getUTCSeconds() / 60 };
+}
+
+const manilaDay = (d: Date) => Math.floor((new Date(d).getTime() + MANILA_OFFSET_MS) / 86400000);
+
 export function dayDiff(target: Date, now: Date) {
-  const t = new Date(target); t.setHours(0, 0, 0, 0);
-  const n = new Date(now); n.setHours(0, 0, 0, 0);
-  return Math.round((t.getTime() - n.getTime()) / 86400000);
+  return manilaDay(target) - manilaDay(now);
 }
 
 export function formatDue(target: Date, now: Date) {
@@ -70,7 +82,7 @@ export const peso = (n: number) =>
   Math.abs(n).toLocaleString("en-PH", { minimumFractionDigits: 2 });
 
 export const clock = (d: Date) =>
-  d.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" }).toUpperCase();
+  d.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: TZ }).toUpperCase();
 
 // Monday of the current week, as a YYYY-MM-DD key. Used to scope
 // weekly-resetting state (e.g. the workout checklist) — once Monday

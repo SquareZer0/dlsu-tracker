@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getGCalData, type GCalEvent } from "@/lib/gcal";
+import { dayDiff } from "@/lib/theme";
 
 // Aggregates the data the companion needs to talk about the student's
 // actual situation. No GWA/grades model exists in the schema yet, so
@@ -34,7 +35,7 @@ function formatEvent(ev: GCalEvent): string {
 // steerable than handing the model raw JSON.
 export function formatSnapshot(s: UserSnapshot): string {
   const now = Date.now();
-  const days = (d: Date) => Math.round((new Date(d).getTime() - now) / 86400000);
+  const days = (d: Date) => dayDiff(d, new Date(now));
 
   // ISO with the +08:00 offset spelled out, since the model has no innate
   // sense of "now" and needs a concrete anchor to resolve things like
